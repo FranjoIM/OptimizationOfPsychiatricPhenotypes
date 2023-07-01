@@ -8,4 +8,4 @@
 
 **Conclusion**. We conclude that the self-report-based K-SADS is reasonably good at assessing child psychopathology in the ABCD Study, particularly when longitudinal data are leveraged, but should be accompanied by more in-depth assessments or clinician-administered K-SADS if using data where accurate disorder classifications are paramount. 
 
-For code, see [./Code.R](Code.R) file.
+For code, see [Code.R](Code.R) file.
