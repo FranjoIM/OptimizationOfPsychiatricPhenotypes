@@ -1,1408 +1,2335 @@
-### SET WORKING DIRECTORY
-setwd("/home/fivankov/DRIVE/ABCD/WorkDir")
+#==============================================================================
+# Optimization of Psychiatric Phenotypes for Genetic Analyses in the Adolescent 
+# Brain Cognitive Development Study
+#
+# Franjo Ivankovic, Sharon Johnson, James Shen, Jeremiah Scharf, Carol Mathews
+#
+# Corresponding author: C.M. @ carolmathews@ufl.edu
+# Alternative contact: F.I. @ fivankovic@broadinstitute.org
+#==============================================================================
+# TABLE OF CONTENTS
+#------------------------------------------------------------------------------
+# PART 1. ENVIRONMENT SETUP
+# 1.1. SET WORKING DIRECTORY
+# 1.2. LOAD NECESSARY LIBRARIES
+# 1.3. IMPORT DATASETS
+# 1.4. GET TIMEPOINT TOTALS
+#
+# PART 2. DEMOGRAPHICS ANALYSIS
+# 2.1. OVERALL SAMPLE SIZES
+# 2.2. AGES
+# 2.3. SEX ASSIGNED AT BIRTH
+# 2.4. GENDER IDENTITY
+# 2.5. RACE
+# 2.6. ETHNICITY
+# 2.7. EDUCATIONAL ATTAINMENT
+# 2.8. HOUSEHOLD INCOME
+#
+# PART 3: CALCULATE DIAGNOSES
+# 3.1. PREPARE HOLDING DATA_FRAME (skip)
+# 3.2. DEPRESSIVE DISORDERS MODULE (skip)
+# 3.3. BIPOLAR DISORDERS MODULE
+# 3.4. DISRUPTIVE MOOD DYSREGULATION DISORDERS MODULE (skip)
+# 3.5. PSYCHOTIC DISORDERS MODULE
+# 3.6. PANIC DISORDER MODULE
+# 3.7. AGORAPHOBIA MODULE (skip)
+# 3.8. SEPARATION ANXIETY DISORDER MODULE
+# 3.9. SOCIAL ANXIETY DISORDER MODULE
+# 3.10. SPECIFIC PHOBIA MODULE
+# 3.11. GENERALIZED ANXIETY DISORDER MODULE
+# 3.12. OBSESSIVE-COMPULSIVE DISORDER MODULE
+# 3.13. ENURESIS AND ENCOPRESIS DISORDER MODULE (skip)
+# 3.14. EATING DISORDERS MODULE
+# 3.15. ATTENTION DEFICIT / HYPERACTIVITY DISORDER MODULE (skip)
+# 3.16. OPPOSITIONAL DEFIANT DISORDER DISORDER MODULE
+# 3.17. CONDUCT DISORDER MODULE
+# 3.18. TIC DISORDERS MODULE
+# 3.19. AUTISM SPECTRUM DISORDER MODULE  (skip)
+# 3.20. ALCOHOL USE DISORDER MODULE  (skip)
+# 3.21. DRUG USE DISORDER MODULE  (skip)
+# 3.22. POST-TRAUMATIC STRESS DISORDER MODULE
+# 3.23. SLEEP PROBLEMS MODULE (skip)
+# 3.24. SUICIDALITY MODULE (skip)
+# 3.25. HOMICIDALITY MODULE (skip)
+# 3.26. SELECTIVE MUTISM MODULE (skip)
+#
+# PART 4. ANALYZE DIAGNOSES
+# 4.1. DEFINE BROAD AND NARROW DATA FRAMES
+#
+# PART 5. ANALYZE CBCL DATA
+# 5.1. PREPARE CBCL DATASET
+# 5.2. RUN LOGISTIC REGRESSIONS ON CBCL DATA
+# 
+# PART 6. PLOT FIGURE 2
+# 6.1. PREPARE DATA FOR PLOTTING
+# 6.2. PLOT FIGURE 2A
+# 6.3. PLOT FIGURE 2B
+# 6.4. PLOT FIGURE 2C
+# 6.5. ORGANIZE AND SAVE FIGURE 2
+#
+# PART 8. EXPORT DATA
+# 8.1. EXPORT PREVALENCE AND COMORBIDITY TABLES
+#==============================================================================
 
-# LOAD NECESSARY LIBRARIES
-suppressPackageStartupMessages(library(readr))
-suppressPackageStartupMessages(library(tidyverse))
-suppressPackageStartupMessages(library(data.table))
-suppressPackageStartupMessages(library(scales))
-suppressPackageStartupMessages(library(boot))
-suppressPackageStartupMessages(library(cowplot))
-suppressPackageStartupMessages(library(caret))
+###############################
+## PART 1. ENVIRONMENT SETUP ##
+###############################
 
-### PROPORTION TEST FUNCTION
-fprop <- function(N=N, D=D, Dx=Dx){
-    
-    fEST <- N/D
-    fUP <- fEST + 1.96 * sqrt((fEST*(1-fEST))/D)
-    fDO <- fEST - 1.96 * sqrt((fEST*(1-fEST))/D)
-    
-    cat(
-        Dx,"\t",
-        round(fEST*100, digits = 2), " (",
-        round(fUP*100, digits = 2), ", " ,
-        round(fDO*100, digits = 2), ")", "\n",
-        sep = ""
-    )
-}
+# 1.1. SET WORKING DIRECTORY
+setwd("./ABCD_Phenotype")
 
-### DATA LOAD
+# 1.2. LOAD NECESSARY LIBRARIES
+library(readr)
+library(readxl)
+library(tidyverse)
+library(caret)
+library(cowplot)
+library(scales)
+library(xlsx)
 
-# Datasets
-KSAD1Y <- read_delim("./abcd_ksad501.txt", delim = "\t", escape_double = FALSE, col_types = "c",
-    trim_ws = TRUE)[-1,]
-KSAD1P <- read_delim("./abcd_ksad01.txt", delim = "\t", escape_double = FALSE, col_types = "c",
-    trim_ws = TRUE)[-1,]
-KSAD2Y <- read_delim("./ksads2daic_use_only01.txt", delim = "\t", escape_double = FALSE, col_types = "c",
-    trim_ws = TRUE)[-1,]
-KSAD2P <- read_delim("./ksads2daic_use_only_p01.txt", delim = "\t", escape_double = FALSE, col_types = "c",
-    trim_ws = TRUE)[-1,]
-CBCLR <- read_delim("./abcd_cbcl01.txt", delim = "\t", escape_double = FALSE, col_types = "c",
-    trim_ws = TRUE)[-1,]
-CBCL <- read_delim("./abcd_cbcls01.txt", delim = "\t", escape_double = FALSE, col_types = "c",
-    trim_ws = TRUE)[-1,]
+# 1.3. IMPORT DATASETS
+CBCL <- read_delim("DATA/ABCDv4/abcd_cbcl01.txt", delim="\t", 
+                 escape_double=F, col_types="c", trim_ws=T)[-1,]
+K1Y <- read_delim("DATA/ABCDv4/abcd_ksad501.txt", delim="\t", 
+                  escape_double=F, col_types="c", trim_ws=T)[-1,]
+K1P <- read_delim("DATA/ABCDv4/abcd_ksad01.txt", delim="\t", 
+                  escape_double=F, col_types="c", trim_ws=T)[-1,]
+K2Y <- read_delim("DATA/ABCDv4/ksads2daic_use_only01.txt", delim="\t", 
+                  escape_double=F, col_types="c", trim_ws=T)[-1,]
+K2P <- read_delim("DATA/ABCDv4/ksads2daic_use_only_p01.txt", delim="\t", 
+                  escape_double=F, col_types="c", trim_ws=T)[-1,]
+DB <- read_delim("DATA/ABCDv4/pdem02.txt", delim="\t", 
+                  escape_double=F, col_types="c", trim_ws=T)[-1,]
+DL <- read_delim("DATA/ABCDv4/abcd_lpds01.txt", delim="\t", 
+                    escape_double=F, col_types="c", trim_ws=T)[-1,]
 
-# Dictionaries
-DKSAD1Y <- read_delim("./abcd_ksad501_definitions.csv", delim = ",", escape_double = FALSE, col_types = "c",
-    trim_ws = TRUE)
-DKSAD1P <- read_delim("./abcd_ksad01_definitions.csv", delim = ",", escape_double = FALSE, col_types = "c",
-    trim_ws = TRUE)
-DKSAD2Y <- read_delim("./ksads2daic_use_only01_definitions.csv", delim = ",", escape_double = FALSE, col_types = "c",
-    trim_ws = TRUE)
-DKSAD2P <- read_delim("./ksads2daic_use_only_p01_definitions.csv", delim = ",", escape_double = FALSE, col_types = "c",
-    trim_ws = TRUE)
 
-### RECODE VALUES
+REF_PREV <- read_excel("Ivankovic_SupplementalData.xlsx", 
+                       sheet = "REF_PREV", range = "A1:D24")
+REF_COM <- read_excel("Ivankovic_SupplementalData.xlsx", 
+                      sheet = "REF_COM", range = "A1:E45")
 
-# KSAD1Y
-KSAD1Y[KSAD1Y == "555"] <- "N"
-KSAD1Y[KSAD1Y == "777"] <- "D"
-KSAD1Y[KSAD1Y == "888"] <- "0"
-KSAD1Y[KSAD1Y == "999"] <- "K"
+# 1.4. GET TIMEPOINT TOTALS
+N_BL <- length(unique(
+          filter(K1P, eventname=="baseline_year_1_arm_1") %>% 
+            pull(src_subject_id)))
+N_F1 <- length(unique(
+          filter(K1P, eventname=="1_year_follow_up_y_arm_1") %>% 
+            pull(src_subject_id)))
+N_F2 <- length(unique(
+          filter(K1P, eventname=="2_year_follow_up_y_arm_1") %>% 
+            pull(src_subject_id)))
+N_F3 <- length(unique(
+          filter(K2P, eventname=="3_year_follow_up_y_arm_1") %>% 
+            pull(src_subject_id)))
 
-# KSAD1P
-KSAD1P[KSAD1P == "555"] <- "N"
-KSAD1P[KSAD1P == "777"] <- "D"
-KSAD1P[KSAD1P == "888"] <- "0"
-KSAD1P[KSAD1P == "999"] <- "K"
+###################################
+## PART 2. DEMOGRAPHICS ANALYSIS ##
+###################################
 
-# KSAD2Y
-KSAD2Y[KSAD2Y == "555"] <- "N"
-KSAD2Y[KSAD2Y == "777"] <- "D"
-KSAD2Y[KSAD2Y == "888"] <- "0"
-KSAD2Y[KSAD2Y == "999"] <- "K"
+# 2.1. OVERALL SAMPLE SIZES
+table(K1P$eventname)
+table(K1Y$eventname)
+table(K2P$eventname)
+table(K2Y$eventname)
+table(CBCL$eventname)
 
-# KSAD2P
-KSAD2P[KSAD2P == "555"] <- "N"
-KSAD2P[KSAD2P == "777"] <- "D"
-KSAD2P[KSAD2P == "888"] <- "0"
-KSAD2P[KSAD2P == "999"] <- "K"
-
-#CBCLR
-CBCLR[CBCLR == "NA"] <- NA
-
-#CBCL
-CBCL[CBCL == "NA"] <- NA
-
-### 01 Depressive disorders (Removed from dataset, SKIP)
-
-### 02 Mania
-
-# KSAD1Y
-BD1Ys <- as.character(paste0("ksads_2_",seq(830, 839, 1),"_t", sep = ""))
-BD1Y <- KSAD1Y %>% dplyr::select(any_of(c(DKSAD1Y$ElementName[c(1:4)],BD1Ys)))
-
-# KSAD1P
-BD1Ps <-  as.character(paste0("ksads_2_",seq(830, 839, 1),"_p", sep = ""))
-BD1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],BD1Ps)))
-
-# Remove instances with non-administered modules
-BD1Y <- BD1Y %>% 
-  unite(TEMP, ksads_2_830_t:ksads_2_839_t, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNNNNNNNN")) %>%
-  select(-TEMP)
-
-BD1P <- BD1P %>% 
-  unite(TEMP, ksads_2_830_p:ksads_2_839_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNNNNNNNN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-BD1Y_V <- BD1Y %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-BD1P_V <- BD1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-BD_V <- full_join(BD1Y_V, BD1P_V, by = c("subjectkey" = "subjectkey"))
-
-BD_V[is.na(BD_V)] <- 0
-
-BD_V <- BD_V %>%
+# 2.2. AGES
+DB %>%
+  full_join(DL, by=c("src_subject_id"="src_subject_id", 
+                     "eventname"="eventname")) %>%
   rowwise() %>%
-  mutate(Assessments = sum(Visits.x, Visits.y, na.rm = TRUE), .keep = "unused")
-
-BD1Y_S <- BD1Y %>%
-  select(c(subjectkey, ksads_2_830_t:ksads_2_837_t)) %>%
-  mutate(LifetimeBD1 = as.numeric(ksads_2_830_t) | as.numeric(ksads_2_831_t) | as.numeric(ksads_2_832_t)
-         | as.numeric(ksads_2_833_t) | as.numeric(ksads_2_834_t),
-         LifetimeBD2 = as.numeric(ksads_2_835_t) | as.numeric(ksads_2_836_t) | as.numeric(ksads_2_837_t),
-         .keep = "unused") %>%
-  mutate(LifetimeBD = as.numeric(LifetimeBD1|LifetimeBD2)) %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeBD = sum(as.numeric(LifetimeBD), na.rm = TRUE),
-            LifetimeBD1 = sum(as.numeric(LifetimeBD1), na.rm = TRUE),
-            LifetimeBD2 = sum(as.numeric(LifetimeBD2), na.rm = TRUE))
-
-BD1P_S <- BD1P %>%
-  select(c(subjectkey, ksads_2_830_p:ksads_2_837_p)) %>%
-  mutate(LifetimeBD1 = as.numeric(ksads_2_830_p) | as.numeric(ksads_2_831_p) | as.numeric(ksads_2_832_p)
-         | as.numeric(ksads_2_833_p) | as.numeric(ksads_2_834_p),
-         LifetimeBD2 = as.numeric(ksads_2_835_p) | as.numeric(ksads_2_836_p) | as.numeric(ksads_2_837_p),
-         .keep = "unused") %>%
-  mutate(LifetimeBD = as.numeric(LifetimeBD1|LifetimeBD2)) %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeBD = sum(as.numeric(LifetimeBD), na.rm = TRUE),
-            LifetimeBD1 = sum(as.numeric(LifetimeBD1), na.rm = TRUE),
-            LifetimeBD2 = sum(as.numeric(LifetimeBD2), na.rm = TRUE))
-
-BD <- full_join(BD1Y_S, BD1P_S, by = c("subjectkey" = "subjectkey"), suffix = c(".p", ".t")) %>%
-  rowwise() %>%
-  mutate(LifetimeBD = sum(LifetimeBD.p, LifetimeBD.t, na.rm = TRUE),
-         LifetimeBD1 = sum(LifetimeBD1.p, LifetimeBD1.t, na.rm = TRUE),
-         LifetimeBD2 = sum(LifetimeBD2.p, LifetimeBD2.t, na.rm = TRUE),
-         .keep = "unused") %>%
-  full_join(BD_V, by = c("subjectkey" = "subjectkey")) %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-BD[is.na(BD)] <- 0
-
-BD_FIN <- BD %>%
-    mutate(nBD1 = as.numeric(LifetimeBD1  >= Criterion),
-           bnBD1 = as.numeric(LifetimeBD1 > 0),
-           nBD2 = as.numeric(LifetimeBD2 >= Criterion),
-           bnBD2 = as.numeric(LifetimeBD2 > 0),
-           nBD = as.numeric(LifetimeBD >= Criterion),
-           bnBD = as.numeric(LifetimeBD > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1Y <- DKSAD1Y %>% filter(!(ElementName %in% BD1Ys))
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% BD1Ps))
-
-# Clear space
-rm(BD1Ys, BD1Ps, BD1Y, BD1P, BD1Y_V, BD1P_V, BD_V, BD1Y_S, BD1P_S)
-
-### 03 Disruptive Mood Dysregulation Disorder (Removed from dataset, SKIP)
-
-### 04 Psychosis
-
-# KSAD1P
-PSY1Ps <-  as.character(c(paste0("ksads_4_",seq(826, 829, 1),"_p", sep = ""), paste0("ksads_4_",seq(849, 852, 1),"_p", sep = "")))
-PSY1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],PSY1Ps)))
-
-# KSAD2P
-PSY2Ps <-  as.character(c(paste0("ksads2_4_",seq(805, 808, 1),"_p", sep = "")))
-PSY2P <- KSAD2P %>% dplyr::select(any_of(c(DKSAD2P$ElementName[c(1:4)],PSY2Ps)))
-
-# Remove instances with non-administered modules
-PSY1P <- PSY1P %>% 
-  unite(TEMP, ksads_4_826_p:ksads_4_850_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNNNN")) %>%
-  select(-TEMP)
-
-PSY2P <- PSY2P %>% 
-  unite(TEMP, ksads2_4_805_p:ksads2_4_807_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-PSY1P_V <- PSY1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-PSY2P_V <- PSY2P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-PSY_V <- full_join(PSY1P_V, PSY2P_V, by = c("subjectkey" = "subjectkey"))
-
-PSY_V[is.na(PSY_V)] <- 0
-
-PSY_V <- PSY_V %>%
-  rowwise() %>%
-  mutate(Assessments = sum(Visits.x, Visits.y, na.rm = TRUE),
-         .keep = "unused")
-
-PSY1P_S <- PSY1P %>%
-  select(c(subjectkey, ksads_4_826_p:ksads_4_850_p)) %>%
-  mutate(LifetimePSY = as.numeric(ksads_4_826_p) | as.numeric(ksads_4_827_p) | as.numeric(ksads_4_828_p)
-         | as.numeric(ksads_4_829_p) | as.numeric(ksads_4_849_p) | as.numeric(ksads_4_850_p),
-         .keep = "unused")
-
-PSY2P_S <- PSY2P %>%
-  select(c(subjectkey, ksads2_4_805_p:ksads2_4_807_p)) %>%
-  mutate(LifetimePSY = as.numeric(ksads2_4_805_p) | as.numeric(ksads2_4_806_p) | as.numeric(ksads2_4_807_p),
-         .keep = "unused")
-
-PSY_S <- rbind(select(PSY1P_S, subjectkey, LifetimePSY), 
-               select(PSY2P_S, subjectkey, LifetimePSY)) %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimePSY = sum(as.numeric(LifetimePSY), na.rm = TRUE))
-
-PSY <- PSY_S %>%
-  full_join(PSY_V, by = c("subjectkey" = "subjectkey"))%>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-PSY[is.na(PSY)] <- 0
-
-PSY_FIN <- PSY %>%
-    mutate(nPSY = as.numeric(LifetimePSY >= Criterion),
-           bnPSY = as.numeric(LifetimePSY > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% PSY1Ps))
-DKSAD2P <- DKSAD2P %>% filter(!(ElementName %in% PSY2Ps))
-
-# Clear space
-rm(PSY1Ps, PSY2Ps, PSY1P, PSY2P, PSY1P_S, PSY2P_S, PSY1P_V, PSY2P_V, PSY_V, PSY_S)
-
-### 05 Panic disorder
-
-PD1Ps <- c("ksads_5_857_p", "ksads_5_858_p", "ksads_5_906_p", "ksads_5_907_p")
-PD1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],PD1Ps)))
-
-# Remove instances with non-administered modules
-PD1P <- PD1P %>% 
-  unite(TEMP, ksads_5_857_p, ksads_5_858_p, ksads_5_906_p, ksads_5_907_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-PD1P_V <- PD1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-PD1P_S <- PD1P %>%
-  select(c(subjectkey, ksads_5_857_p, ksads_5_858_p)) %>%
-  mutate(LifetimePD = as.numeric(ksads_5_857_p) | as.numeric(ksads_5_858_p), .keep = "unused")  %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimePD = sum(as.numeric(LifetimePD), na.rm = TRUE))
-
-PD <- PD1P_S %>%
-  full_join(PD1P_V, by = c("subjectkey" = "subjectkey")) %>%
-  mutate(Assessments = Visits, 
-        .keep = "unused") %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-PD[is.na(PD)] <- 0
-
-PD_FIN <- PD %>%
-    mutate(nPD = as.numeric(LifetimePD >= Criterion),
-           bnPD = as.numeric(LifetimePD > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% PD1Ps))
-
-# Clear space
-rm(PD1Ps, PD1P, PD1P_V, PD1P_S)
-
-### 06 Agoraphobia (Removed from dataset, SKIP)
-
-### 07 Separation anxiety disorder
-
-# KSAD1P
-SeAD1Ps <- c("ksads_7_861_p", "ksads_7_862_p", "ksads_7_909_p", "ksads_7_910_p")
-SeAD1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],SeAD1Ps)))
-
-# Remove instances with non-administered modules
-SeAD1P <- SeAD1P %>% 
-  unite(TEMP, ksads_7_861_p, ksads_7_862_p, ksads_7_909_p, ksads_7_910_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-SeAD1P_V <- SeAD1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-SeAD1P_S <- SeAD1P %>%
-  select(c(subjectkey, ksads_7_861_p, ksads_7_862_p)) %>%
-  mutate(LifetimeSeAD = as.numeric(ksads_7_861_p) | as.numeric(ksads_7_862_p), .keep = "unused")  %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeSeAD = sum(as.numeric(LifetimeSeAD), na.rm = TRUE))
-
-SeAD <- SeAD1P_S %>%
-  full_join(SeAD1P_V, by = c("subjectkey" = "subjectkey")) %>%
-  mutate(Assessments = Visits, 
-        .keep = "unused") %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-SeAD[is.na(SeAD)] <- 0
-
-SeAD_FIN <- SeAD %>%
-    mutate(nSeAD = as.numeric(LifetimeSeAD >= Criterion),
-           bnSeAD = as.numeric(LifetimeSeAD > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% SeAD1Ps))
-
-# Clear space
-rm(SeAD1Ps, SeAD1P, SeAD1P_V, SeAD1P_S)
-
-### 08 Social anxiety disorder / Selective mutism
-
-# KSAD1Y
-SoAD1Ys <- c("ksads_8_863_t", "ksads_8_864_t", "ksads_8_911_t", "ksads_8_912_t")
-SoAD1Y <- KSAD1Y %>% dplyr::select(any_of(c(DKSAD1Y$ElementName[c(1:4)],SoAD1Ys)))
-
-# KSAD1P
-SoAD1Ps <- c("ksads_8_863_p", "ksads_8_864_p", "ksads_8_911_p", "ksads_8_912_p")
-SoAD1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],SoAD1Ps)))
-
-# Remove instances with non-administered modules
-SoAD1Y <- SoAD1Y %>% 
-  unite(TEMP, ksads_8_863_t, ksads_8_864_t, ksads_8_911_t, ksads_8_912_t, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-SoAD1P <- SoAD1P %>% 
-  unite(TEMP, ksads_8_863_p, ksads_8_864_p, ksads_8_911_p, ksads_8_912_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-SoAD1Y_V <- SoAD1Y %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-SoAD1P_V <- SoAD1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-SoAD_V <- full_join(SoAD1Y_V, SoAD1P_V, by = c("subjectkey" = "subjectkey"))
-
-SoAD_V[is.na(SoAD_V)] <- 0
-
-SoAD_V <- SoAD_V %>%
-  rowwise() %>%
-  mutate(Assessments = sum(Visits.x, Visits.y, na.rm = TRUE),
-         .keep = "unused")
-
-SoAD1Y_S <- SoAD1Y %>%
-  select(c(subjectkey, ksads_8_863_t, ksads_8_864_t)) %>%
-  mutate(LifetimeSoAD = as.numeric(ksads_8_863_t) | as.numeric(ksads_8_864_t), .keep = "unused")  %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeSoAD = sum(as.numeric(LifetimeSoAD), na.rm = TRUE))
-
-SoAD1P_S <- SoAD1P %>%
-  select(c(subjectkey, ksads_8_863_p, ksads_8_864_p)) %>%
-  mutate(LifetimeSoAD = as.numeric(ksads_8_863_p) | as.numeric(ksads_8_864_p), .keep = "unused")  %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeSoAD = sum(as.numeric(LifetimeSoAD), na.rm = TRUE))
-
-SoAD <- SoAD1P_S %>%
-  full_join(SoAD1Y_S, by = c("subjectkey" = "subjectkey"), suffix = c(".p", ".t")) %>%
-  rowwise() %>%
-  mutate(LifetimeSoAD = sum(LifetimeSoAD.p, LifetimeSoAD.t, na.rm = TRUE),
-         .keep = "unused") %>%
-  full_join(SoAD_V, by = c("subjectkey" = "subjectkey")) %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-SoAD[is.na(SoAD)] <- 0
-
-SoAD_FIN <- SoAD %>%
-    mutate(nSoAD = as.numeric(LifetimeSoAD >= Criterion),
-           bnSoAD = as.numeric(LifetimeSoAD > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1Y <- DKSAD1Y %>% filter(!(ElementName %in% SoAD1Ys))
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% SoAD1Ps))
-
-# Clear space
-rm(SoAD1Ys, SoAD1Ps, SoAD1Y, SoAD1P, SoAD1Y_V, SoAD1P_V, SoAD_V, SoAD1Y_S, SoAD1P_S)
-
-### 09 Specific phobias
-
-# KSAD1P
-SP1Ps <- c("ksads_9_867_p", "ksads_9_868_p")
-SP1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],SP1Ps)))
-
-# Remove instances with non-administered modules
-SP1P <- SP1P %>% 
-  unite(TEMP, ksads_9_867_p, ksads_9_868_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-SP1P_V <- SP1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-SP1P_S <- SP1P %>%
-  select(c(subjectkey, ksads_9_867_p, ksads_9_868_p)) %>%
-  mutate(LifetimeSP = as.numeric(ksads_9_867_p) | as.numeric(ksads_9_868_p), .keep = "unused")  %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeSP = sum(as.numeric(LifetimeSP), na.rm = TRUE))
-
-SP <- SP1P_S %>%
-  full_join(SP1P_V, by = c("subjectkey" = "subjectkey")) %>%
-  mutate(Assessments = Visits, 
-        .keep = "unused") %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-SP[is.na(SP)] <- 0
-
-SP_FIN <- SP %>%
-    mutate(nSP = as.numeric(LifetimeSP >= Criterion),
-           bnSP = as.numeric(LifetimeSP > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% SP1Ps))
-
-# Clear space
-rm(SP1Ps, SP1P, SP1P_V, SP1P_S)
-
-### 10 Generalized anxiety disorder
-
-# KSAD1Y
-GAD1Ys <- c("ksads_10_869_t", "ksads_10_870_t", "ksads_10_913_t", "ksads_10_914_t")
-GAD1Y <- KSAD1Y %>% dplyr::select(any_of(c(DKSAD1Y$ElementName[c(1:4)],GAD1Ys)))
-
-# KSAD1P
-GAD1Ps <- c("ksads_10_869_p", "ksads_10_870_p", "ksads_10_913_p", "ksads_10_914_p")
-GAD1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],GAD1Ps)))
-
-# Remove instances with non-administered modules
-GAD1Y <- GAD1Y %>% 
-  unite(TEMP, ksads_10_869_t, ksads_10_870_t, ksads_10_913_t, ksads_10_914_t, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-GAD1P <- GAD1P %>% 
-  unite(TEMP, ksads_10_869_p, ksads_10_870_p, ksads_10_913_p, ksads_10_914_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-GAD1Y_V <- GAD1Y %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-GAD1P_V <- GAD1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-GAD_V <- full_join(GAD1Y_V, GAD1P_V, by = c("subjectkey" = "subjectkey"))
-
-GAD_V[is.na(GAD_V)] <- 0
-
-GAD_V <- GAD_V %>%
-  rowwise() %>%
-  mutate(Assessments = sum(Visits.x, Visits.y, na.rm = TRUE),
-         .keep = "unused")
-
-GAD1Y_S <- GAD1Y %>%
-  select(c(subjectkey, ksads_10_869_t, ksads_10_870_t)) %>%
-  mutate(LifetimeGAD = as.numeric(ksads_10_869_t) | as.numeric(ksads_10_870_t), .keep = "unused")  %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeGAD = sum(as.numeric(LifetimeGAD), na.rm = TRUE))
-
-GAD1P_S <- GAD1P %>%
-  select(c(subjectkey, ksads_10_869_p, ksads_10_870_p)) %>%
-  mutate(LifetimeGAD = as.numeric(ksads_10_869_p) | as.numeric(ksads_10_870_p), .keep = "unused")  %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeGAD = sum(as.numeric(LifetimeGAD), na.rm = TRUE))
-
-GAD <- full_join(GAD1Y_S, GAD1P_S, by = c("subjectkey" = "subjectkey"), suffix = c(".p", ".t")) %>%
-  rowwise() %>%
-  mutate(LifetimeGAD = sum(LifetimeGAD.p, LifetimeGAD.t, na.rm = TRUE),
-         .keep = "unused") %>%
-  full_join(GAD_V, by = c("subjectkey" = "subjectkey")) %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-GAD[is.na(GAD)] <- 0
-
-GAD_FIN <- GAD %>%
-    mutate(nGAD = as.numeric(LifetimeGAD >= Criterion),
-           bnGAD = as.numeric(LifetimeGAD > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1Y <- DKSAD1Y %>% filter(!(ElementName %in% GAD1Ys))
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% GAD1Ps))
-
-# Clear space
-rm(GAD1Ys, GAD1Ps, GAD1Y, GAD1P, GAD1Y_V, GAD1P_V, GAD_V, GAD1Y_S, GAD1P_S)
-
-### 11 Obsessive-compulsive disorder
-
-OCD1Ps <- c("ksads_11_917_p", "ksads_11_918_p", "ksads_11_919_p", "ksads_11_920_p")
-OCD1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],OCD1Ps)))
-
-OCD1P <- OCD1P %>% 
-  unite(TEMP, ksads_11_917_p:ksads_11_920_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-OCD1P_V <- OCD1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-# Split into 2-visit and 1-visit cohorts
-OCD1P_S <- OCD1P %>%
-  select(c(subjectkey, ksads_11_917_p, ksads_11_918_p)) %>%
-  mutate(LifetimeOCD = as.numeric(ksads_11_917_p) | as.numeric(ksads_11_918_p), .keep = "unused")  %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeOCD = sum(as.numeric(LifetimeOCD), na.rm = TRUE))
-
-OCD <- OCD1P_S %>%
-  full_join(OCD1P_V, by = c("subjectkey" = "subjectkey")) %>%
-  mutate(Assessments = Visits, 
-        .keep = "unused") %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-OCD[is.na(OCD)] <- 0
-
-OCD_FIN <- OCD %>%
-    mutate(nOCD = as.numeric(LifetimeOCD >= Criterion),
-           bnOCD = as.numeric(LifetimeOCD > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% OCD1Ps))
-
-# Clear space
-rm(OCD1Ps, OCD1P, OCD1P_V, OCD1P_S)
-
-### 12 Enurisis (Removed from dataset, SKIP)
-
-### 13 Encopresis (Removed from dataset, SKIP)
-
-### 14 Eating or feeding disorders (Anorexia nervosa data missing, SKIP AN only)
-
-# KSAD1P
-EFD1Ps <-  as.character(c(paste0("ksads_13_",seq(935, 944, 1),"_p", sep = "")))
-EFD1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],EFD1Ps)))
-
-# KSAD1Y
-EFD1Ys <-  as.character(c(paste0("ksads_13_",seq(935, 944, 1),"_t", sep = "")))
-EFD1Y <- KSAD1Y %>% dplyr::select(any_of(c(DKSAD1Y$ElementName[c(1:4)],EFD1Ys)))
-
-# KSAD2P
-EFD2Ps <-  as.character(c(paste0("ksads2_13_",seq(896, 904, 1),"_p", sep = "")))
-EFD2P <- KSAD2P %>% dplyr::select(any_of(c(DKSAD2P$ElementName[c(1:4)],EFD2Ps)))
-
-# Remove instances with non-administered modules
-EFD1P <- EFD1P %>% 
-  unite(TEMP, ksads_13_935_p:ksads_13_944_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNNNNNNNN")) %>%
-  select(-TEMP)
-
-EFD1Y  <- EFD1Y %>% 
-  unite(TEMP, ksads_13_935_t:ksads_13_944_t, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNNNNNNNN")) %>%
-  select(-TEMP)
-
-EFD2P <- EFD2P %>% 
-  unite(TEMP, ksads2_13_896_p:ksads2_13_904_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNNNNNNN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-EFD1P_V <- EFD1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-EFD1Y_V <- EFD1Y %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-EFD2P_V <- EFD2P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-EFD_V <- full_join(EFD1P_V, EFD1Y_V, EFD2P_V, by = c("subjectkey" = "subjectkey"))
-
-EFD_V[is.na(EFD_V)] <- 0
-
-EFD_V <- EFD_V %>%
-  rowwise() %>%
-  mutate(Assessments = sum(Visits.x, Visits.y, na.rm = TRUE),
-         .keep = "unused")
-
-EFD1P_S <- EFD1P %>%
-  select(c(subjectkey, ksads_13_935_p:ksads_13_940_p)) %>%
-  mutate(LifetimeBN = as.numeric(ksads_13_935_p) | as.numeric(ksads_13_936_p) | as.numeric(ksads_13_937_p),
-         LifetimeBED = as.numeric(ksads_13_938_p) | as.numeric(ksads_13_939_p) | as.numeric(ksads_13_940_p),
-        .keep = "unused") %>%
-  mutate(LifetimeEFD = as.numeric(LifetimeBN | LifetimeBED))
-
-EFD1Y_S <- EFD1Y %>%
-  select(c(subjectkey, ksads_13_935_t:ksads_13_940_t)) %>%
-  mutate(LifetimeBN = as.numeric(ksads_13_935_t) | as.numeric(ksads_13_936_t) | as.numeric(ksads_13_937_t),
-         LifetimeBED = as.numeric(ksads_13_938_t) | as.numeric(ksads_13_939_t) | as.numeric(ksads_13_940_t),
-        .keep = "unused") %>%
-  mutate(LifetimeEFD = as.numeric(LifetimeBN | LifetimeBED))
-
-EFD2P_S <- EFD2P %>%
-  select(c(subjectkey, ksads2_13_896_p:ksads2_13_900_p)) %>%
-  mutate(LifetimeBN = as.numeric(ksads2_13_896_p) | as.numeric(ksads2_13_897_p) | as.numeric(ksads2_13_898_p),
-         LifetimeBED = as.numeric(ksads2_13_899_p) | as.numeric(ksads2_13_900_p),
-        .keep = "unused") %>%
-  mutate(LifetimeEFD = as.numeric(LifetimeBN | LifetimeBED))
-
-EFD_PS <- rbind(select(EFD1P_S, subjectkey, LifetimeBED, LifetimeBN, LifetimeEFD), 
-               select(EFD2P_S, subjectkey, LifetimeEFD, LifetimeBED, LifetimeBN)) %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeEFD = sum(as.numeric(LifetimeEFD), na.rm = TRUE),
-            LifetimeBED = sum(as.numeric(LifetimeBED), na.rm = TRUE),
-            LifetimeBN = sum(as.numeric(LifetimeBN), na.rm = TRUE))
-
-EFD_P <- EFD_PS %>%
-  full_join(EFD_V, by = c("subjectkey" = "subjectkey")) 
-
-EFD <- EFD_P %>%
-  full_join(EFD1Y_S, by = c("subjectkey" = "subjectkey"), suffix = c(".p", ".t")) %>%
-  rowwise() %>%
-  mutate(LifetimeBED = sum(LifetimeBED.p, LifetimeBED.t, na.rm = TRUE),
-           LifetimeBN = sum(LifetimeBN.p, LifetimeBN.t, na.rm = TRUE),
-           LifetimeEFD = sum(LifetimeEFD.p, LifetimeEFD.t, na.rm = TRUE),
-           .keep = "unused") %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-EFD[is.na(EFD)] <- 0
-
-EFD_FIN <- EFD %>%
-    mutate(nBED = as.numeric(LifetimeBED >= Criterion),
-           bnBED = as.numeric(LifetimeBED > 0),
-           nBN = as.numeric(LifetimeBN >= Criterion),
-           bnBN = as.numeric(LifetimeBN > 0),
-           nEFD = as.numeric(LifetimeEFD >= Criterion),
-           bnEFD = as.numeric(LifetimeEFD > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% EFD1Ps))
-DKSAD2P <- DKSAD2P %>% filter(!(ElementName %in% EFD2Ps))
-DKSAD1Y <- DKSAD2P %>% filter(!(ElementName %in% EFD1Ys))
-
-# Clear space
-rm(EFD1Ps, EFD2Ps, EFD1P, EFD2P, EFD1P_S, EFD2P_S, EFD1P_V, EFD2P_V, EFD_V, EFD_PS, EFD_P, EFD1Y, EFD1Y_S, EFD1Y_V)
-
-### 15 Attention Deficit/Hyperactivity Disorder (Removed from dataset, SKIP)
-
-### 16 Oppositional Defiant Disorder
-
-# KSAD1P
-ODD1Ps <- c("ksads_15_901_p", "ksads_15_902_p")
-ODD1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],ODD1Ps)))
-
-# Remove instances with non-administered modules
-ODD1P <- ODD1P %>% 
-  unite(TEMP, ksads_15_901_p, ksads_15_902_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-ODD1P_V <- ODD1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-ODD1P_S <- ODD1P %>%
-  select(c(subjectkey, ksads_15_901_p, ksads_15_902_p)) %>%
-  mutate(LifetimeODD = as.numeric(ksads_15_901_p) | as.numeric(ksads_15_902_p), .keep = "unused")  %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeODD = sum(as.numeric(LifetimeODD), na.rm = TRUE))
-
-ODD <- ODD1P_S %>%
-  full_join(ODD1P_V, by = c("subjectkey" = "subjectkey")) %>%
-  mutate(Assessments = Visits, 
-        .keep = "unused") %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-ODD[is.na(ODD)] <- 0
-
-ODD_FIN <- ODD %>%
-    mutate(nODD = as.numeric(LifetimeODD >= Criterion),
-           bnODD = as.numeric(LifetimeODD > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% ODD1Ps))
-# Clear space
-rm(ODD1Ps, ODD1P, ODD1P_V, ODD1P_S)
-
-### 17 Conduct disorder
-
-# KSAD1P
-CD1Ps <-  as.character(c(paste0("ksads_16_",seq(897, 900, 1),"_p", sep = "")))
-CD1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4,6)],CD1Ps)))
-
-# KSAD1Y
-CD1Ys <-  as.character(c(paste0("ksads_16_",seq(897, 900, 1),"_t", sep = "")))
-CD1Y <- KSAD1Y %>% dplyr::select(any_of(c(DKSAD1Y$ElementName[c(1:4,6)],CD1Ys)))
-
-# KSAD2P
-CD2Ps <-  as.character(c(paste0("ksads2_16_",seq(855, 858, 1),"_p", sep = "")))
-CD2P <- KSAD2P %>% dplyr::select(any_of(c(DKSAD2P$ElementName[c(1:4,6)],CD2Ps)))
-
-# Remove instances with non-administered modules
-CD1P <- CD1P %>% 
-  unite(TEMP, ksads_16_897_p:ksads_16_900_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-CD1Y  <- CD1Y %>% 
-  unite(TEMP, ksads_16_897_t:ksads_16_900_t, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-CD2P <- CD2P %>% 
-  unite(TEMP, ksads2_16_855_p:ksads2_16_858_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-CD1P_V <- CD1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-CD1Y_V <- CD1Y %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-CD2P_V <- CD2P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-CD_V <- full_join(CD1P_V, CD1Y_V, CD2P_V, by = c("subjectkey" = "subjectkey"))
-
-CD_V[is.na(CD_V)] <- 0
-
-CD_V <- CD_V %>%
-  rowwise() %>%
-  mutate(Assessments = sum(Visits.x, Visits.y, na.rm = TRUE),
-         .keep = "unused")
-
-CD1P_S <- CD1P %>%
-  select(c(subjectkey, ksads_16_897_p:ksads_16_900_p)) %>%
-  mutate(LifetimeCD = as.numeric(ksads_16_897_p) | as.numeric(ksads_16_898_p) | as.numeric(ksads_16_899_p)| as.numeric(ksads_16_900_p),
-         .keep = "unused")
-
-CD1Y_S <- CD1Y %>%
-  select(c(subjectkey, ksads_16_897_t:ksads_16_900_t)) %>%
-  mutate(LifetimeCD = as.numeric(ksads_16_897_t) | as.numeric(ksads_16_898_t) | as.numeric(ksads_16_899_t)| as.numeric(ksads_16_900_t),
-         .keep = "unused") %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeCD = sum(as.numeric(LifetimeCD), na.rm = TRUE)) 
-
-CD2P_S <- CD2P %>%
-  select(c(subjectkey, ksads2_16_855_p:ksads2_16_858_p)) %>%
-  mutate(LifetimeCD = as.numeric(ksads2_16_855_p) | as.numeric(ksads2_16_856_p) | as.numeric(ksads2_16_857_p)| as.numeric(ksads2_16_858_p),
-         .keep = "unused")
-
-CD_PS <- rbind(select(CD1P_S, subjectkey, LifetimeCD), 
-               select(CD2P_S, subjectkey, LifetimeCD)) %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimeCD = sum(as.numeric(LifetimeCD), na.rm = TRUE))
-
-CD_P <- CD_PS %>%
-  full_join(CD_V, by = c("subjectkey" = "subjectkey")) 
-
-CD <- CD_P %>%
-  full_join(CD1Y_S, by = c("subjectkey" = "subjectkey"), suffix = c(".p", ".t")) %>%
-  rowwise() %>%
-  mutate(LifetimeCD = sum(LifetimeCD.p, LifetimeCD.t, na.rm = TRUE),
-           .keep = "unused")  %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-CD[is.na(CD)] <- 0
-
-CD_FIN <- CD %>%
-    mutate(nCD = as.numeric(LifetimeCD >= Criterion),
-           bnCD = as.numeric(LifetimeCD > 0),
-          .keep = "unused")
-
-
-# Clear Dictionaries
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% CD1Ps))
-DKSAD2P <- DKSAD2P %>% filter(!(ElementName %in% CD2Ps))
-DKSAD1Y <- DKSAD2P %>% filter(!(ElementName %in% CD1Ys))
-
-# Clear space
-rm(CD1Ps, CD2Ps, CD1P, CD2P, CD1P_S, CD2P_S, CD1P_V, CD2P_V, CD_V, CD_PS, CD_P, CD1Y, CD1Y_S, CD1Y_V)
-
-### 18 Tic disorders (FOLLOWS ALTERNATE DIAGNOSTIC SCHEMA)
-
-# KSAD2P
-TicsP <- KSAD2P %>% 
-  select(c("subjectkey", "interview_age", "sex", "eventname", "ksads2_17_99_p",
-           "ksads2_17_100_p", "ksads2_17_101_p", "ksads2_17_102_p", 
-           "ksads2_17_864_p", "ksads2_17_865_p"))
-
-TicsP[TicsP == "888"] <- "0"
-
-TicsP <- TicsP %>% transmute(Motor_X = ifelse(as.numeric(ksads2_17_99_p) == 1 | as.numeric(ksads2_17_100_p) == 1, 1, 0),
-                            Phonic_X = ifelse(as.numeric(ksads2_17_101_p) == 1 | as.numeric(ksads2_17_102_p) == 1, 1, 0),
-                            subjectkey = subjectkey)
-
-TicsP <- TicsP %>% mutate(Narrow_CTD = case_when(
-  Phonic_X == 1 & Motor_X == 1 ~ 2,
-  Phonic_X == 0 & Motor_X == 1 ~ 1,
-  Phonic_X == 1 & Motor_X == 0 ~ 1,
-  Phonic_X == 0 & Motor_X == 0 ~ 0))
-
-TicsP[is.na(TicsP)] <- 0
-
-TD_FIN <- TicsP %>%
-    mutate(nTD = as.numeric(Narrow_CTD == 2),
-           bnTD = as.numeric(Narrow_CTD > 0)) %>%
-    select(subjectkey, nTD, bnTD)
-
-### 19 Autism Spectrum Disorder (Removed from dataset, SKIP)
-
-### 20 Tobacco use disorder (Removed from dataset, SKIP)
-
-### 21 Alcohol use disorder (Out of purview, SKIP)
-
-### 22 Substance use disorder (Out of purview, SKIP)
-
-### 23 Post traumatic stress disorder
-
-# KSAD1P
-PTSD1Ps <- c("ksads_21_921_p", "ksads_21_922_p", "ksads_21_923_p", "ksads_21_924_p")
-PTSD1P <- KSAD1P %>% dplyr::select(any_of(c(DKSAD1P$ElementName[c(1:4)],PTSD1Ps)))
-
-# Remove instances with non-administered modules
-PTSD1P <- PTSD1P %>% 
-  unite(TEMP, ksads_21_921_p, ksads_21_922_p, ksads_21_923_p, ksads_21_924_p, remove = F, sep = "") %>%
-  filter(!(TEMP == "NNNN")) %>%
-  select(-TEMP)
-
-# Count visits for each individual
-PTSD1P_V <- PTSD1P %>% 
-  group_by(subjectkey) %>%
-  summarise(Visits = n()) %>%
-  ungroup()
-
-PTSD1P_S <- PTSD1P %>%
-  select(c(subjectkey, ksads_21_921_p, ksads_21_922_p)) %>%
-  mutate(LifetimePTSD = as.numeric(ksads_21_921_p) | as.numeric(ksads_21_922_p), .keep = "unused")  %>%
-  group_by(subjectkey) %>%
-  summarise(LifetimePTSD = sum(as.numeric(LifetimePTSD), na.rm = TRUE))
-
-PTSD <- PTSD1P_S %>%
-  full_join(PTSD1P_V, by = c("subjectkey" = "subjectkey")) %>%
-  mutate(Assessments = Visits, 
-        .keep = "unused") %>%
-  mutate(Criterion = case_when(
-      Assessments < 3 ~ 2,
-      Assessments >= 3 ~ ceiling((Assessments+0.05)/2),
-      TRUE ~ 0))
-
-# Create Final Table
-PTSD[is.na(PTSD)] <- 0
-
-PTSD_FIN <- PTSD %>%
-    mutate(nPTSD = as.numeric(LifetimePTSD >= Criterion),
-           bnPTSD = as.numeric(LifetimePTSD > 0),
-          .keep = "unused")
-
-# Clear Dictionaries
-DKSAD1P <- DKSAD1P %>% filter(!(ElementName %in% PTSD1Ps))
-
-# Clear space
-rm(PTSD1Ps, PTSD1P, PTSD1P_V, PTSD1P_S)
-
-### 24 Sleep problems (Out of purview, SKIP)
-
-### 25 Self injourious behavior and suicide (Out of purview, SKIP)
-
-### 26 Homicidal ideation (Out of purview, SKIP)
-
-FullL <- list(BD_FIN, PSY_FIN, PD_FIN, SeAD_FIN, SoAD_FIN, SP_FIN, GAD_FIN, 
-              OCD_FIN, EFD_FIN, ODD_FIN, CD_FIN, TD_FIN, PTSD_FIN)
-
-Full <- FullL %>% 
-    reduce(full_join, by = "subjectkey") %>%
-    select(-starts_with("Assessment"))
-
-Broad <- Full %>%
-    select(c(subjectkey, starts_with("b")))
-
-Narrow <- Full %>%
-    select(c(subjectkey, starts_with("n")))
-
-Narrow %>% filter(!is.na(nTD)) %>% select(c(nOCD,nTD)) %>% table(.)
-Narrow %>% filter(!is.na(nTD)) %>% nrow(.)
-
-### CREATING DATA FRAMES
+  mutate(AGE=mean(c(as.numeric(demo_brthdat_v2),
+                    as.numeric(demo_brthdat_v2_l)), na.rm=T)) %>% 
+  group_by(eventname) %>%
+  summarize(mean=mean(AGE, na.rm=T),
+            sd=sd(AGE, na.rm=T)) %>%
+  mutate(across(where(is.numeric), ~ round(.x, digits=1)))
+
+# 2.3. SEX ASSIGNED AT BIRTH
+ID_BL <- pull(filter(DB, eventname=="baseline_year_1_arm_1"), 
+              src_subject_id)
+ID_F1 <- pull(filter(DL, eventname=="1_year_follow_up_y_arm_1"), 
+              src_subject_id)
+ID_F2 <- pull(filter(DL, eventname=="2_year_follow_up_y_arm_1"), 
+              src_subject_id)
+ID_F3 <- pull(filter(DL, eventname=="3_year_follow_up_y_arm_1"), 
+              src_subject_id)
+
+DB %>% 
+  filter(src_subject_id %in% ID_BL) %>%
+  pull(demo_sex_v2) %>%
+  table(.) %>%
+  as.data.frame(.) %>%
+  mutate(Prop=round(Freq/N_BL*100, digits=1))
+
+DB %>% 
+  filter(src_subject_id %in% ID_F1) %>%
+  pull(demo_sex_v2) %>%
+  table(.) %>%
+  as.data.frame(.) %>%
+  mutate(Prop=round(Freq/N_F1*100, digits=1))
+
+DB %>% 
+  filter(src_subject_id %in% ID_F2) %>%
+  pull(demo_sex_v2) %>%
+  table(.) %>%
+  as.data.frame(.) %>%
+  mutate(Prop=round(Freq/N_F2*100, digits=1))
+
+DB %>% 
+  filter(src_subject_id %in% ID_F3) %>%
+  pull(demo_sex_v2) %>%
+  table(.) %>%
+  as.data.frame(.) %>%
+  mutate(Prop=round(Freq/N_F3*100, digits=1))
+
+# 2.4. GENDER IDENTITY
+DB %>%
+  full_join(DL, by=c("src_subject_id"="src_subject_id", 
+                     "eventname"="eventname",
+                     "subjectkey"="subjectkey")) %>%
+  mutate(across(starts_with("demo_gender"),
+                ~replace(., which(. %in% c(777,999, 6)|is.na(.)), 0))) %>%
+  mutate(across(starts_with("demo_gender"),
+                ~replace(., which(. %in% c(1,2)|is.na(.)), 1))) %>%
+  mutate(across(starts_with("demo_gender"),
+                ~replace(., which(. %in% c(3,4,5)|is.na(.)), 2))) %>%
+  mutate(across(starts_with("demo_gender"),
+                ~as.numeric(.))) %>%
+  mutate(X=ifelse(demo_gender_id_v2==demo_gender_id_v2_l,
+                  demo_gender_id_v2,
+                  demo_gender_id_v2+demo_gender_id_v2_l)) %>%
+  group_by(eventname, X) %>%
+  summarise(N=n()) %>%
+  as.data.frame(.) %>%
+  select(c(eventname, X, N)) %>%
+  mutate(NEV=case_when(
+    eventname=="baseline_year_1_arm_1" ~ N_BL,
+    eventname=="1_year_follow_up_y_arm_1" ~ N_F1,
+    eventname=="2_year_follow_up_y_arm_1" ~ N_F2,
+    eventname=="3_year_follow_up_y_arm_1" ~ N_F3,
+    TRUE ~ NA_real_)) %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+# 2.5. RACE
+RACE <- DB %>%
+  select(c(src_subject_id, eventname, demo_race_a_p___10, demo_race_a_p___11, 
+           demo_race_a_p___12, demo_race_a_p___13, demo_race_a_p___14, 
+           demo_race_a_p___15, demo_race_a_p___16, demo_race_a_p___17, 
+           demo_race_a_p___18, demo_race_a_p___19, demo_race_a_p___20, 
+           demo_race_a_p___21, demo_race_a_p___22, demo_race_a_p___23,
+           demo_race_a_p___24, demo_race_a_p___25)) %>%
+  pivot_longer(c(demo_race_a_p___10:demo_race_a_p___25), names_to="RACE",
+               values_to="V") %>%
+  filter(V>0) %>%
+  select(-V) %>%
+  mutate(RACE=gsub("demo_race_a_p___","",RACE)) %>%
+  mutate(RACE_CAT=case_when(
+    RACE=="10" ~ 1,
+    RACE=="11" ~ 10,
+    RACE %in% c("12", "13") ~ 100,
+    RACE %in% c("14", "15", "16", "17") ~ 1000,
+    RACE %in% c("18", "19", "20", "21", "22", "23", "24") ~ 10000,
+    RACE=="25" ~ 100000,
+    TRUE ~ NA_real_)) %>%
+  select(c(src_subject_id, eventname, RACE_CAT)) %>%
+  distinct() %>%
+  group_by(src_subject_id, eventname) %>%
+  summarize(RACE=sum(RACE_CAT)) %>%
+  mutate(MULTIRACIAL = str_count(RACE, "1")) %>%
+  mutate(RACE=ifelse(MULTIRACIAL>1, 100000, RACE)) %>%
+  mutate(RACE_CAT=case_when(
+    RACE==1 ~ "WHITE",
+    RACE==10 ~ "BLACK",
+    RACE==100 ~ "NATAM",
+    RACE==1000 ~ "PACIS",
+    RACE==10000 ~ "ASIAN",
+    RACE==100000 ~ "MULTOT",
+    TRUE ~ NA_character_))
+  
+RACE %>%
+  filter(src_subject_id %in% ID_BL) %>%
+  group_by(eventname, RACE_CAT) %>%
+  summarize(N=n()) %>%
+  pivot_wider(names_from=RACE_CAT, values_from=N) %>%
+  mutate(NEV=N_BL) %>%
+  mutate(MISS=NEV-WHITE-BLACK-NATAM-PACIS-ASIAN-MULTOT) %>%
+  pivot_longer(c(WHITE, BLACK, ASIAN, NATAM, PACIS, MULTOT, MISS), 
+               names_to="RACE", values_to="N") %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+RACE %>%
+  filter(src_subject_id %in% ID_F1) %>%
+  group_by(eventname, RACE_CAT) %>%
+  summarize(N=n()) %>%
+  pivot_wider(names_from=RACE_CAT, values_from=N) %>%
+  mutate(NEV=N_F1) %>%
+  mutate(MISS=NEV-WHITE-BLACK-NATAM-PACIS-ASIAN-MULTOT) %>%
+  pivot_longer(c(WHITE, BLACK, ASIAN, NATAM, PACIS, MULTOT, MISS), 
+               names_to="RACE", values_to="N") %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+RACE %>%
+  filter(src_subject_id %in% ID_F2) %>%
+  group_by(eventname, RACE_CAT) %>%
+  summarize(N=n()) %>%
+  pivot_wider(names_from=RACE_CAT, values_from=N) %>%
+  mutate(NEV=N_F2) %>%
+  mutate(MISS=NEV-WHITE-BLACK-NATAM-PACIS-ASIAN-MULTOT) %>%
+  pivot_longer(c(WHITE, BLACK, ASIAN, NATAM, PACIS, MULTOT, MISS), 
+               names_to="RACE", values_to="N") %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+RACE %>%
+  filter(src_subject_id %in% ID_F3) %>%
+  group_by(eventname, RACE_CAT) %>%
+  summarize(N=n()) %>%
+  pivot_wider(names_from=RACE_CAT, values_from=N) %>%
+  mutate(NEV=N_F3) %>%
+  mutate(MISS=NEV-WHITE-BLACK-NATAM-PACIS-ASIAN-MULTOT) %>%
+  pivot_longer(c(WHITE, BLACK, ASIAN, NATAM, PACIS, MULTOT, MISS), 
+               names_to="RACE", values_to="N") %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+rm(RACE)
+
+# 2.6. ETHNICITY
+ETHNICITY <- DB %>%
+  filter(!is.na(demo_ethn_v2) & eventname=="baseline_year_1_arm_1") %>%
+  select(c(src_subject_id, demo_ethn_v2)) %>%
+  mutate(across(starts_with("demo_ethn_v2"),
+                ~replace(., which(. %in% c(777,999)), NA)))
+
+ETHNICITY$demo_ethn_v2 <- as.character(ETHNICITY$demo_ethn_v2)
+
+ETHNICITY$demo_ethn_v2[ETHNICITY$demo_ethn_v2=="1"] <- "YES"
+ETHNICITY$demo_ethn_v2[ETHNICITY$demo_ethn_v2=="2"] <- "NO"
+
+ETHNICITY %>%
+  filter(src_subject_id %in% ID_BL) %>%
+  group_by(demo_ethn_v2) %>%
+  summarize(N=n()) %>%
+  pivot_wider(names_from=demo_ethn_v2, values_from=N) %>%
+  mutate(NEV=N_BL) %>%
+  mutate(MISS=NEV-YES-NO) %>%
+  pivot_longer(c(YES, NO, MISS), 
+               names_to="ETHNICITY", values_to="N") %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+ETHNICITY %>%
+  filter(src_subject_id %in% ID_F1) %>%
+  group_by(demo_ethn_v2) %>%
+  summarize(N=n()) %>%
+  pivot_wider(names_from=demo_ethn_v2, values_from=N) %>%
+  mutate(NEV=N_F1) %>%
+  mutate(MISS=NEV-YES-NO) %>%
+  pivot_longer(c(YES, NO, MISS), 
+               names_to="ETHNICITY", values_to="N") %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+ETHNICITY %>%
+  filter(src_subject_id %in% ID_F2) %>%
+  group_by(demo_ethn_v2) %>%
+  summarize(N=n()) %>%
+  pivot_wider(names_from=demo_ethn_v2, values_from=N) %>%
+  mutate(NEV=N_F2) %>%
+  mutate(MISS=NEV-YES-NO) %>%
+  pivot_longer(c(YES, NO, MISS), 
+               names_to="ETHNICITY", values_to="N") %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+ETHNICITY %>%
+  filter(src_subject_id %in% ID_F3) %>%
+  group_by(demo_ethn_v2) %>%
+  summarize(N=n()) %>%
+  pivot_wider(names_from=demo_ethn_v2, values_from=N) %>%
+  mutate(NEV=N_F3) %>%
+  mutate(MISS=NEV-YES-NO) %>%
+  pivot_longer(c(YES, NO, MISS), 
+               names_to="ETHNICITY", values_to="N") %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+rm(ETHNICITY)
+
+# 2.7. EDUCATIONAL ATTAINMENT
+EDUAT <- DB %>%
+  full_join(DL, by=c("src_subject_id"="src_subject_id", 
+                     "eventname"="eventname",
+                     "subjectkey"="subjectkey")) %>%
+  select(c(src_subject_id, eventname, demo_prnt_ed_v2,
+           demo_prnt_ed_v2_l, demo_prtnr_ed_v2, demo_prtnr_ed_v2_l, 
+           demo_prnt_ed_v2_2yr_l, demo_prtnr_ed_v2_2yr_l)) %>%
+  mutate(across(starts_with("demo_"),
+                ~replace(., which(. %in% c(777,999)), NA))) %>%
+  mutate(across(starts_with("demo_"),
+                ~as.numeric(.))) %>%
+  mutate(across(where(is.numeric), ~ case_when(
+    .x<13 ~ 1,                                    # Less than highschool
+    .x>12 & .x<15 ~ 10,                           # highschool ged
+    (.x>15 & .x<18) | (.x>21 & .x<25) ~ 100,      # some college
+    .x==18 ~ 1000,                                # undergraduate degree
+    .x>18 & .x<22 ~ 10000,                        # graduate degreee
+    TRUE ~ NA_real_))) %>%
+  pivot_longer(cols=starts_with("demo")) %>% 
+  filter(!is.na(value)) %>%
+  select(src_subject_id, eventname, value) %>%
+  distinct() %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(EDAT=sum(value)) %>%
+  mutate(EDAT=str_count(EDAT, "[0-9]")) %>%
+  mutate(EDCAT=case_when(
+    EDAT==1 ~ "< HS",
+    EDAT==2 ~ "HS / GED",
+    EDAT==3 ~ "SOME COLLEGE",
+    EDAT==4 ~ "UNDERGRADUATE DEGREE",
+    EDAT==5 ~ "GRADUATE DEGREE",
+    TRUE ~ NA_character_),
+    .keep="unused") %>%
+  group_by(eventname, EDCAT) %>%
+  summarize(N=n()) %>%
+  group_by(eventname) %>%
+  mutate(NOBS=sum(N)) %>%
+  ungroup() %>%
+  mutate(NEV=case_when(
+    eventname=="baseline_year_1_arm_1" ~ N_BL,
+    eventname=="1_year_follow_up_y_arm_1" ~ N_F1,
+    eventname=="2_year_follow_up_y_arm_1" ~ N_F2,
+    eventname=="3_year_follow_up_y_arm_1" ~ N_F3,
+    TRUE ~ NA_real_)) 
+
+EDUAT %>% 
+  select(eventname, EDCAT, N, NEV) %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused") %>%
+  print(n=25)
+
+EDUAT %>% 
+  select(eventname, NOBS, NEV) %>%
+  distinct() %>%
+  mutate(N=NEV-NOBS,
+         P=round((NEV-NOBS)/NEV*100, digits=1),
+         .keep="unused") %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+rm(EDUAT)
+
+# 2.8. HOUSEHOLD INCOME
+HINC <- DB %>%
+  full_join(DL, by=c("src_subject_id"="src_subject_id", 
+                     "eventname"="eventname",
+                     "subjectkey"="subjectkey")) %>%
+  select(c(src_subject_id, eventname, 
+           demo_comb_income_v2, demo_comb_income_v2_l)) %>%
+  mutate(across(starts_with("demo_comb"),
+                ~replace(., which(. %in% c(777,999)), NA))) %>%
+  mutate(income=ifelse(!is.na(demo_comb_income_v2), demo_comb_income_v2,
+                       demo_comb_income_v2_l),
+         .keep="unused") %>%
+  mutate(income=as.numeric(income)) %>%
+  mutate(INC_CAT=case_when(
+    income<5 ~ "A. 0 - 25000",
+    income>4 & income<8 ~ "B. 25000 - 75000",
+    income>7 & income<10 ~ "C. 75000 - 200000",
+    income==10 ~ "D. 200000+",
+    TRUE ~ NA_character_)) %>%
+  filter(!is.na(INC_CAT)) %>%
+  group_by(eventname, INC_CAT) %>%
+  summarize(N=n()) %>%
+  group_by(eventname) %>%
+  mutate(NOBS=sum(N)) %>%
+  ungroup() %>%
+  mutate(NEV=case_when(
+    eventname=="baseline_year_1_arm_1" ~ N_BL,
+    eventname=="1_year_follow_up_y_arm_1" ~ N_F1,
+    eventname=="2_year_follow_up_y_arm_1" ~ N_F2,
+    eventname=="3_year_follow_up_y_arm_1" ~ N_F3,
+    TRUE ~ NA_real_)) 
+
+HINC %>% 
+  select(eventname, INC_CAT, N, NEV) %>%
+  mutate(P=round(N/NEV*100, digits=1)) %>%
+  select(-NEV) %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused") %>%
+  print(n=25)
+
+HINC %>% 
+  select(eventname, NOBS, NEV) %>%
+  distinct() %>%
+  mutate(N=NEV-NOBS,
+         P=round((NEV-NOBS)/NEV*100, digits=1),
+         .keep="unused") %>%
+  mutate(Stat=paste0(N, " (", P,")"),
+         .keep="unused")
+
+rm(HINC)
+
+#################################
+## PART 3. CALCULATE DIAGNOSES ##
+#################################
+
+# 3.1. PREPARE HOLDING DATA_FRAME
+DAT <- full_join(select(K1P, c(src_subject_id)),
+                 select(K1Y, c(src_subject_id)),
+                 by="src_subject_id",
+                 relationship="many-to-many") %>%
+  distinct(.)
+
+# 3.2. DEPRESSIVE DISORDERS MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, data removed due to programming errors.
+#------------------------------------------------------------------------------
+
+# 3.3. BIPOLAR DISORDERS MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+# ksads_2_830_p - BDI Current Manic [F31.1x]
+# ksads_2_831_p - BDI Current Depressed [F31.3x]
+# ksads_2_832_p - BDI Current Hypomanic [F31.0]
+# ksads_2_833_p - BDI Most Recent Past Manic [F31.1x]
+# ksads_2_834_p - BDI Most Recent Past Depressed [F31.3x]
+# ksads2_2_798_p - BDI Current Manic [F31.1x]
+# ksads2_2_799_p - BDI Current Depressed [F31.3x]
+# ksads2_2_800_p - BDI Most Recent Manic [F31.9]
+#
+# ksads_2_830_t - BDI Current Manic [F31.1x]
+# ksads_2_831_t - BDI Current Depressed [F31.3x]
+# ksads_2_832_t - BDI Current Hypomanic [F31.0]
+# ksads_2_833_t - BDI Most Recent Past Manic [F31.1x]
+# ksads_2_834_t - BDI Most Recent Past Depressed [F31.3x]
+# ksads2_2_798_t - BDI Current Manic [F31.1x]
+# ksads2_2_799_t - BDI Current Depressed [F31.3x]
+# ksads2_2_800_t - BDI Most Recent Manic [F31.9]
+#
+# Abbreviations:
+# BDI - Bipolar Disorder Type I
+#------------------------------------------------------------------------------
+
+BDIP <- full_join(K1P, K2P, 
+                  by=c("src_subject_id"="src_subject_id",
+                       "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_2_830_p,        # V1 BDI Current Manic
+           ksads_2_831_p,        # V1 BDI Current Depressed
+           ksads_2_832_p,        # V1 BDI Current Hypomanic
+           ksads_2_833_p,        # V1 BDI Most Recent Past Manic
+           ksads_2_834_p,        # V1 BDI Most Recent Past Depressed
+           ksads2_2_798_p,       # V2 BDI Current Manic
+           ksads2_2_799_p,       # V2 BDI Current Depressed
+           ksads2_2_800_p))      # V2 BDI Most Recent Manic
+
+BDIY <- full_join(K1Y, K2Y, 
+                  by=c("src_subject_id"="src_subject_id",
+                       "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_2_830_t,        # V1 BDI Current Manic
+           ksads_2_831_t,        # V1 BDI Current Depressed
+           ksads_2_832_t,        # V1 BDI Current Hypomanic
+           ksads_2_833_t,        # V1 BDI Most Recent Past Manic
+           ksads_2_834_t,        # V1 BDI Most Recent Past Depressed
+           ksads2_2_798_t,       # V2 BDI Current Manic
+           ksads2_2_799_t,       # V2 BDI Current Depressed
+           ksads2_2_800_t))      # V2 BDI Most Recent Manic
+
+table(stack(select(BDIP, starts_with("ksads")))$values, 
+      useNA="always")
+
+table(stack(select(BDIY, starts_with("ksads")))$values, 
+      useNA="always")
+
+BDIP_V <- BDIY %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+BDIY_V <- BDIY %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+BDIP <- BDIP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(BDIP_V, by="src_subject_id")
+
+BDIY <- BDIY %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(BDIY_V, by="src_subject_id")
+
+BDI <- full_join(BDIP, BDIY, by="src_subject_id") %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(TC=TC.x+TC.y,
+         AS=AS.x+AS.y,
+         .keep="unused") %>%
+  mutate(nBDI=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnBDI=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=BDI$nBDI, Broad=BDI$bnBDI)
+
+DAT <- DAT %>%
+  left_join(BDI, by="src_subject_id")
+
+rm(BDI, BDIP, BDIY, BDIP_V, BDIY_V)
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+# ksads_2_835_p - BDII Current Hypomanic [F31.81]
+# ksads_2_836_p - BDII Current Depressed [F31.81]
+# ksads_2_837_p - BDII Most Recent Past Hypomanic [F31.81]
+# ksads2_2_801_p - BDII Current Hypomanic [F31.81]
+# ksads2_2_802_p - BDII Most Recent Past Depressed [F31.81]
+# ksads2_2_931_p - BDII Current Depressed [F31.81]
+#
+# ksads_2_835_t - BDII Current Hypomanic [F31.81]
+# ksads_2_836_t - BDII Current Depressed [F31.81]
+# ksads_2_837_t - BDII Most Recent Past Hypomanic [F31.81]
+# ksads2_2_801_t - BDII Current Hypomanic [F31.81]
+# ksads2_2_802_t - BDII Most Recent Past Depressed [F31.81]
+# ksads2_2_931_t - BDII Current Depressed [F31.81]
+#
+# Abbreviations:
+# BDII - Bipolar Disorder Type II
+#------------------------------------------------------------------------------
+
+BDIIP <- full_join(K1P, K2P, 
+                   by=c("src_subject_id"="src_subject_id",
+                        "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_2_835_p,        # V1 BDII Current Hypomanic
+           ksads_2_836_p,        # V1 BDII Current Depressed
+           ksads_2_837_p,        # V1 BDII Most Recent Past Hypomanic
+           ksads2_2_801_p,       # V2 BDII Current Hypomanic
+           ksads2_2_802_p,       # V2 BDII Most Recent Past Depressed
+           ksads2_2_931_p))      # V2 BDII Current Depressed
+
+BDIIY <- full_join(K1Y, K2Y, 
+                   by=c("src_subject_id"="src_subject_id",
+                        "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_2_835_t,        # V1 BDII Current Hypomanic
+           ksads_2_836_t,        # V1 BDII Current Depressed
+           ksads_2_837_t,        # V1 BDII Most Recent Past Hypomanic
+           ksads2_2_801_t,       # V2 BDII Current Hypomanic
+           ksads2_2_802_t,       # V2 BDII Most Recent Past Depressed
+           ksads2_2_931_t))      # V2 BDII Current Depressed
+
+
+table(stack(select(BDIIP, starts_with("ksads")))$values, 
+      useNA="always")
+
+table(stack(select(BDIIY, starts_with("ksads")))$values, 
+      useNA="always")
+
+BDIIP_V <- BDIIY %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+BDIIY_V <- BDIIY %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+BDIIP <- BDIIP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(BDIIP_V, by="src_subject_id")
+
+BDIIY <- BDIIY %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(BDIIY_V, by="src_subject_id")
+
+BDII <- full_join(BDIIP, BDIIY, by="src_subject_id") %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(TC=TC.x+TC.y,
+         AS=AS.x+AS.y,
+         .keep="unused") %>%
+  mutate(nBDII=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnBDII=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=BDII$nBDII, Broad=BDII$bnBDII)
+
+DAT <- DAT %>%
+  left_join(BDII, by="src_subject_id")
+
+rm(BDII, BDIIP, BDIIY, BDIIP_V, BDIIY_V)
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Bipolar group will be determined as a presence of either BPI or BP2, either
+# at narrow level (nBDI | nBDII) or broad+narrow level (bnBDI | bnBDII)
+#------------------------------------------------------------------------------
+
+DAT <- DAT %>%
+  mutate(nBD=as.numeric(nBDI|nBDII),
+         bnBD=as.numeric(bnBDI|bnBDII))
+
+# 3.4. DISRUPTIVE MOOD DYSREGULATION DISORDERS MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, data removed due to programming errors.
+#------------------------------------------------------------------------------
+
+# 3.5. PSYCHOTIC DISORDERS MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+#	ksads_4_826_p - Hallucinations Present
+#	ksads_4_827_p - Hallucinations Past
+#	ksads_4_828_p - Delusions Present
+#	ksads_4_829_p - Delusions Past
+#	ksads_4_849_p - Associated Psychotic Symptoms Current
+#	ksads_4_850_p - Associated Psychotic Symptoms Past
+#	ksads2_4_805_p - Schizophrenia [F20.9]
+#	ksads2_4_806_p - Schizophreniform Disorder [F20.81]
+#	ksads2_4_807_p - Schizoaffective Disorder [F25.0/1] 
+#
+# Abbreviations:
+# PSY - psychotic disorders
+#------------------------------------------------------------------------------
+
+PSYP <- full_join(K1P, K2P, 
+            by=c("src_subject_id"="src_subject_id",
+                 "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_4_826_p,        # V1 Hallucinations Present
+           ksads_4_827_p,        # V1 Hallucinations Past
+           ksads_4_828_p,        # V1 Delusions Present
+           ksads_4_829_p,        # V1 Delusions Past
+           ksads_4_849_p,        # V1 Associated Psychotic Symptoms Current
+           ksads_4_850_p,        # V1 Associated Psychotic Symptoms Past
+           ksads2_4_805_p,       # V2 Schizophrenia
+           ksads2_4_806_p,       # V2 Schizophreniform Disorder
+           ksads2_4_807_p))      # V2 Schizoaffective Disorder
+
+table(stack(select(PSYP, starts_with("ksads")))$values, 
+      useNA="always")
+
+PSYP_V <- PSYP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "1_year_follow_up_y_arm_1",
+             "2_year_follow_up_y_arm_1",
+             "3_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+PSYP <- PSYP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(PSYP_V, by="src_subject_id")
+
+PSY <- PSYP %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(nPSY=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnPSY=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=PSY$nPSY, Broad=PSY$bnPSY)
+
+DAT <- DAT %>%
+  left_join(PSY, by="src_subject_id")
+
+rm(PSY, PSYP, PSYP_V)
+
+# 3.6. PANIC DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+#	ksads_5_857_p - PD Present [F41.0]
+#	ksads_5_858_p - PD Past [F41.0]
+#	ksads2_5_814_p - PD Present [F41.0]
+#	ksads2_5_815_p - PD Present in Partial Remission [F41.0]
+#	ksads2_5_816_p - PD Past [F41.0]
+#
+# Abbreviations:
+# PD - panic disorder
+#------------------------------------------------------------------------------
+
+PDP <- full_join(K1P, K2P, 
+                 by=c("src_subject_id"="src_subject_id",
+                      "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_5_857_p,        # V1 PD Present
+           ksads_5_858_p,        # V1 PD Past
+           ksads2_5_814_p,       # V2 PD Present
+           ksads2_5_815_p,       # V2 PD Present in Partial Remission
+           ksads2_5_816_p))      # V2 PD Past
+
+table(stack(select(PDP, starts_with("ksads")))$values, 
+      useNA="always")
+
+PDP_V <- PDP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+PDP <- PDP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(PDP_V, by="src_subject_id")
+
+PD <- PDP %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(nPD=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnPD=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=PD$nPD, Broad=PD$bnPD)
+
+DAT <- DAT %>%
+  left_join(PD, by="src_subject_id")
+
+rm(PD, PDP, PDP_V)
+
+# 3.7. AGORAPHOBIA MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, data removed due to programming errors.
+#------------------------------------------------------------------------------
+
+# 3.8. SEPARATION ANXIETY DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+#	ksads_7_861_p - SAD Present [F93.00]
+#	ksads_7_862_p - SAD Past [F93.00]
+#	ksads2_7_819_p - SAD Present [F93.00]
+#	ksads2_7_820_p - SAD Past [F93.00]
+#
+# Abbreviations:
+# SAD - separation anxiety disorder
+#------------------------------------------------------------------------------
+
+SADP <- full_join(K1P, K2P, 
+                  by=c("src_subject_id"="src_subject_id",
+                       "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_7_861_p,        # V1 SAD Present
+           ksads_7_862_p,        # V1 SAD Past
+           ksads2_7_819_p,       # V2 SAD Present
+           ksads2_7_820_p))      # V2 SAD Past
+
+table(stack(select(SADP, starts_with("ksads")))$values, 
+      useNA="always")
+
+SADP_V <- SADP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+SADP <- SADP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(SADP_V, by="src_subject_id")
+
+SAD <- SADP %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(nSAD=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnSAD=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=SAD$nSAD, Broad=SAD$bnSAD)
+
+DAT <- DAT %>%
+  left_join(SAD, by="src_subject_id")
+
+rm(SAD, SADP, SADP_V)
+
+# 3.9. SOCIAL ANXIETY DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+# ksads_8_864_p - SOPH Present [F40.10]
+# ksads_8_863_p - SOPH Past [F40.10]
+# ksads2_8_821_p - SOPH Present [F40.10]
+# ksads2_8_822_p - SOPH Past [F40.10]
+#
+# ksads_8_864_t - SOPH Present [F40.10]
+# ksads_8_863_t - SOPH Past [F40.10]
+# ksads2_8_821_t - SOPH Present [F40.10]
+# ksads2_8_822_t - SOPH Past [F40.10]
+#
+# Abbreviations:
+# SOPH - social phobia (also social anxiety disorder)
+#------------------------------------------------------------------------------
+
+SOPHP <- full_join(K1P, K2P, 
+                   by=c("src_subject_id"="src_subject_id",
+                        "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_8_864_p,        # V1 SOPH Present
+           ksads_8_863_p,        # V1 SOPH Past
+           ksads2_8_821_p,       # V2 SOPH Present
+           ksads2_8_822_p))      # V2 SOPH Past
+
+SOPHY <- full_join(K1Y, K2Y, 
+                   by=c("src_subject_id"="src_subject_id",
+                        "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_8_864_t,        # V1 SOPH Present
+           ksads_8_863_t,        # V1 SOPH Remission
+           ksads2_8_821_t,       # V2 SOPH Present
+           ksads2_8_822_t))      # V2 SOPH Past
+
+table(stack(select(SOPHP, starts_with("ksads")))$values, 
+      useNA="always")
+
+table(stack(select(SOPHY, starts_with("ksads")))$values, 
+      useNA="always")
+
+SOPHP_V <- SOPHP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+SOPHY_V <- SOPHY %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+SOPHP <- SOPHP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(SOPHP_V, by="src_subject_id")
+
+SOPHY <- SOPHY %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(SOPHY_V, by="src_subject_id")
+
+SOPH <- full_join(SOPHP, SOPHY, by="src_subject_id") %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(TC=TC.x+TC.y,
+         AS=AS.x+AS.y,
+         .keep="unused") %>%
+  mutate(nSOPH=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnSOPH=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=SOPH$nSOPH, Broad=SOPH$bnSOPH)
+
+DAT <- DAT %>%
+  left_join(SOPH, by="src_subject_id")
+
+rm(SOPH, SOPHP, SOPHY, SOPHP_V, SOPHY_V)
+
+# 3.10. SPECIFIC PHOBIA MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+#	ksads_9_867_p - SP Present [F40.2XX]
+#	ksads_9_868_p - SP Past [F40.2XX]
+#	ksads2_9_825_p - SP Present [F40.2XX]
+#	ksads2_9_826_p - SP Past [F40.2XX]
+#
+# Abbreviations:
+# SP - specific phobia
+#------------------------------------------------------------------------------
+
+SPP <- full_join(K1P, K2P, 
+                 by=c("src_subject_id"="src_subject_id",
+                      "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_9_867_p,        # V1 SP Present
+           ksads_9_868_p,        # V1 SP Past
+           ksads2_9_825_p,       # V2 SP Present
+           ksads2_9_826_p))      # V2 SP Past
+
+table(stack(select(SPP, starts_with("ksads")))$values, 
+      useNA="always")
+
+SPP_V <- SPP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+SPP <- SPP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(SPP_V, by="src_subject_id")
+
+SP <- SPP %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(nSP=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnSP=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=SP$nSP, Broad=SP$bnSP)
+
+DAT <- DAT %>%
+  left_join(SP, by="src_subject_id")
+
+rm(SP, SPP, SPP_V)
+
+# 3.11. GENERALIZED ANXIETY DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+# ksads_10_869_p - GAD Present [F41.1]
+# ksads_10_870_p - GAD Past [F41.1] 
+# ksads2_10_827_p - GAD Present [F41.1] 
+# ksads2_10_827_p - GAD Past [F41.1]
+#
+# ksads_10_869_t - GAD Present [F41.1]
+# ksads_10_870_t - GAD Past [F41.1]
+# ksads2_10_827_t - GAD Present [F41.1]
+# ksads2_10_827_t - GAD Past [F41.1]
+#
+# Abbreviations:
+# GAD - generalized anxiety disorder
+#------------------------------------------------------------------------------
+
+GADP <- full_join(K1P, K2P, 
+                  by=c("src_subject_id"="src_subject_id",
+                       "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_10_869_p,       # V1 GAD Present
+           ksads_10_870_p,       # V1 GAD Past
+           ksads2_10_827_p,      # V2 GAD Present
+           ksads2_10_827_p))     # V2 GAD Past
+
+GADY <- full_join(K1Y, K2Y, 
+                  by=c("src_subject_id"="src_subject_id",
+                       "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_10_869_t,       # V1 GAD Present
+           ksads_10_870_t,       # V1 GAD Past
+           ksads2_10_827_t,      # V2 GAD Present
+           ksads2_10_827_t))     # V2 GAD Past
+
+table(stack(select(GADP, starts_with("ksads")))$values, 
+      useNA="always")
+
+table(stack(select(GADY, starts_with("ksads")))$values, 
+      useNA="always")
+
+GADP_V <- GADP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+GADY_V <- GADY %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+GADP <- GADP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(GADP_V, by="src_subject_id")
+
+GADY <- GADY %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(GADY_V, by="src_subject_id")
+
+GAD <- full_join(GADP, GADY, by="src_subject_id") %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(TC=TC.x+TC.y,
+         AS=AS.x+AS.y,
+         .keep="unused") %>%
+  mutate(nGAD=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnGAD=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=GAD$nGAD, Broad=GAD$bnGAD)
+
+DAT <- DAT %>%
+  left_join(GAD, by="src_subject_id")
+
+rm(GAD, GADP, GADY, GADP_V, GADY_V)
+
+# 3.12. OBSESSIVE-COMPULSIVE DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+#	ksads_11_917_p - OCD Present [F42]
+#	ksads_11_918_p - OCD Past [F42]
+#	ksads2_11_877_p - OCD Present [F42]
+#	ksads2_11_878_p - OCD Past [F42]
+#
+# Abbreviations:
+# OCD - obsessive-compulsive disorder
+#------------------------------------------------------------------------------
+
+OCDP <- full_join(K1P, K2P, 
+                  by=c("src_subject_id"="src_subject_id",
+                       "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_11_917_p,       # V1 OCD Present
+           ksads_11_918_p,       # V1 OCD Past
+           ksads2_11_877_p,      # V2 OCD Present
+           ksads2_11_878_p))     # V2 OCD Past
+
+table(stack(select(OCDP, starts_with("ksads")))$values, 
+      useNA="always")
+
+OCDP_V <- OCDP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+OCDP <- OCDP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(OCDP_V, by="src_subject_id")
+
+OCD <- OCDP %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(nOCD=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnOCD=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=OCD$nOCD, Broad=OCD$bnOCD)
+
+DAT <- DAT %>%
+  left_join(OCD, by="src_subject_id")
+
+rm(OCDP, OCDP_V)
+
+# 3.13. ENURESIS AND ENCOPRESIS DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, because module was not administered to participants at any point.
+#------------------------------------------------------------------------------
+
+# 3.14. EATING DISORDERS MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Anorexia nervosa skipped, data removed due to programming errors.
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+# ksads_13_935_p - BN Present [F50.2]
+# ksads_13_936_p - BN Past [F50.2]
+# ksads_13_937_p - BN Remission [F50.2]
+# ksads2_13_896_p - BN Present [F50.2]
+# ksads2_13_897_p - BN Past [F50.2]
+# ksads2_13_898_p - BN Remission [F50.2]
+#
+# ksads_13_935_t - BN Present [F50.2]
+# ksads_13_936_t - BN Past [F50.2]
+# ksads_13_937_t - BN Remission [F50.2]
+# ksads2_13_896_t - BN Present [F50.2]
+# ksads2_13_897_t - BN Past [F50.2]
+# ksads2_13_898_t - BN Remission [F50.2]
+#
+# Abbreviations:
+# BN - bulimia nervosa
+#------------------------------------------------------------------------------
+
+BNP <- full_join(K1P, K2P, 
+                 by=c("src_subject_id"="src_subject_id",
+                      "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_13_935_p,       # V1 BN Present
+           ksads_13_936_p,       # V1 BN Past
+           ksads_13_937_p,       # V1 BN Remission
+           ksads2_13_896_p,      # V2 BN Present
+           ksads2_13_897_p,      # V2 BN Past
+           ksads2_13_898_p))     # V2 BN Remission
+
+BNY <- full_join(K1Y, K2Y, 
+                 by=c("src_subject_id"="src_subject_id",
+                      "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_13_935_t,       # V1 BN Present
+           ksads_13_936_t,       # V1 BN Past
+           ksads_13_937_t,       # V1 BN Remission
+           ksads2_13_896_t,      # V2 BN Present
+           ksads2_13_897_t,      # V2 BN Past
+           ksads2_13_898_t))     # V2 BN Remission
+
+table(stack(select(BNP, starts_with("ksads")))$values, 
+      useNA="always")
+
+table(stack(select(BNY, starts_with("ksads")))$values, 
+      useNA="always")
+
+BNP_V <- BNP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "1_year_follow_up_y_arm_1",
+             "2_year_follow_up_y_arm_1",
+             "3_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+BNY_V <- BNY %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+BNP <- BNP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(BNP_V, by="src_subject_id")
+
+BNY <- BNY %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(BNY_V, by="src_subject_id")
+
+BN <- full_join(BNP, BNY, by="src_subject_id") %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(TC=TC.x+TC.y,
+         AS=AS.x+AS.y,
+         .keep="unused") %>%
+  mutate(nBN=as.numeric(TC>(AS/2)),
+         bnBN=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=BN$nBN, Broad=BN$bnBN)
+
+DAT <- DAT %>%
+  left_join(BN, by="src_subject_id")
+
+rm(BN, BNP, BNY, BNP_V, BNY_V)
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+# ksads_13_938_p - BED Present [F50.8]
+# ksads_13_939_p - BED Remission [F50.8] 
+# ksads_13_940_p - BED Past [F50.8]
+# ksads2_13_899_p - BED Present [F50.8]
+# ksads2_13_900_p - BED Past [F50.8]
+#
+# ksads_13_938_t - BED Present [F50.8]
+# ksads_13_939_t - BED Remission [F50.8] 
+# ksads_13_940_t - BED Past [F50.8]
+# ksads2_13_899_t - BED Present [F50.8]
+# ksads2_13_900_t - BED Past [F50.8]
+#
+# Abbreviations:
+# BED - binge-eating disorder
+#------------------------------------------------------------------------------
+
+BEDP <- full_join(K1P, K2P, 
+                  by=c("src_subject_id"="src_subject_id",
+                       "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_13_938_p,       # V1 BED Present
+           ksads_13_939_p,       # V1 BED Remission
+           ksads_13_940_p,       # V1 BED Past
+           ksads2_13_899_p,      # V2 BED Present
+           ksads2_13_900_p))     # V2 BED Past
+
+BEDY <- full_join(K1Y, K2Y, 
+                  by=c("src_subject_id"="src_subject_id",
+                       "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_13_938_t,       # V1 BED Present
+           ksads_13_939_t,       # V1 BED Remission
+           ksads_13_940_t,       # V1 BED Past
+           ksads2_13_899_t,      # V2 BED Present
+           ksads2_13_900_t))     # V2 BED Past
+
+table(stack(select(BEDP, starts_with("ksads")))$values, 
+      useNA="always")
+
+table(stack(select(BEDY, starts_with("ksads")))$values, 
+      useNA="always")
+
+BEDP_V <- BEDP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "1_year_follow_up_y_arm_1",
+             "2_year_follow_up_y_arm_1",
+             "3_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+BEDY_V <- BEDY %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+BEDP <- BEDP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(BEDP_V, by="src_subject_id")
+
+BEDY <- BEDY %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(BEDY_V, by="src_subject_id")
+
+BED <- full_join(BEDP, BEDY, by="src_subject_id") %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(TC=TC.x+TC.y,
+         AS=AS.x+AS.y,
+         .keep="unused") %>%
+  mutate(nBED=as.numeric(TC>(AS/2)),
+         bnBED=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=BED$nBED, Broad=BED$bnBED)
+
+DAT <- DAT %>%
+  left_join(BED, by="src_subject_id")
+
+rm(BED, BEDP, BEDY, BEDP_V, BEDY_V)
+
+# 3.15. ATTENTION DEFICIT / HYPERACTIVITY DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, data removed due to programming errors.
+#------------------------------------------------------------------------------
+
+# 3.16. OPPOSITIONAL DEFIANT DISORDER DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+#	ksads_15_901_p - ODD Present [F90]
+#	ksads_15_902_p - ODD Past [F90]
+#	ksads2_15_859_p - ODD Present [F90]
+#	ksads2_15_860_p - ODD Past [F90]
+#
+# Abbreviations:
+# ODD - oppositional defiant disorder
+#------------------------------------------------------------------------------
+
+ODDP <- full_join(K1P, K2P, 
+                  by=c("src_subject_id"="src_subject_id",
+                       "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_15_901_p,       # V1 ODD Present
+           ksads_15_902_p,       # V1 ODD Past
+           ksads2_15_859_p,      # V2 ODD Present
+           ksads2_15_860_p))     # V2 ODD Past
+
+table(stack(select(ODDP, starts_with("ksads")))$values, 
+      useNA="always")
+
+ODDP_V <- ODDP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "1_year_follow_up_y_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+ODDP <- ODDP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(ODDP_V, by="src_subject_id")
+
+ODD <- ODDP %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(nODD=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnODD=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=ODD$nODD, Broad=ODD$bnODD)
+
+DAT <- DAT %>%
+  left_join(ODD, by="src_subject_id")
+
+rm(ODD, ODDP, ODDP_V)
+
+# 3.17. CONDUCT DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+# ksads_16_897_p - CD Present Childhood Onset [F91.1]
+# ksads_16_898_p - CD Present Adolescent Onset [F91.2]
+# ksads_16_899_p - CD Past Childhood Onset [F91.1]
+# ksads_16_900_p - CD Past Adolescent Onset [F91.2]
+# ksads2_16_855_p - CD Present Childhood Onset [F91.1]
+# ksads2_16_856_p - CD Present Adolescent Onset [F91.2]
+# ksads2_16_857_p - CD Past Childhood Onset [F91.1]
+# ksads2_16_858_p - CD Past Adolescent Onset [F91.2]
+#
+# ksads_16_897_t - CD Present Childhood Onset [F91.1]
+# ksads_16_898_t - CD Present Adolescent Onset [F91.2]
+# ksads_16_899_t - CD Past Childhood Onset [F91.1]
+# ksads_16_900_t - CD Past Adolescent Onset [F91.2]
+# ksads2_16_855_t - CD Present Childhood Onset [F91.1]
+# ksads2_16_856_t - CD Present Adolescent Onset [F91.2]
+# ksads2_16_857_t - CD Past Childhood Onset [F91.1]
+# ksads2_16_858_t - CD Past Adolescent Onset [F91.2]
+#
+# Abbreviations:
+# CD - conduct disorder
+#------------------------------------------------------------------------------
+
+CDP <- full_join(K1P, K2P, 
+                 by=c("src_subject_id"="src_subject_id",
+                      "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_16_897_p,       # V1 CD Present Childhood
+           ksads_16_898_p,       # V1 CD Present Adolescent
+           ksads_16_899_p,       # V1 CD Past Childhood
+           ksads_16_900_p,       # V1 CD Past Adolescent
+           ksads2_16_855_p,      # V2 CD Present Childhood
+           ksads2_16_856_p,      # V2 CD Present Adolescent
+           ksads2_16_857_p,      # V2 CD Past Childhood
+           ksads2_16_858_p))     # V2 CD Past Adolescent
+
+CDY <- full_join(K1Y, K2Y, 
+                 by=c("src_subject_id"="src_subject_id",
+                      "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads_16_897_t,       # V1 CD Present Childhood
+           ksads_16_898_t,       # V1 CD Present Adolescent
+           ksads_16_899_t,       # V1 CD Past Childhood
+           ksads_16_900_t,       # V1 CD Past Adolescent
+           ksads2_16_855_t,      # V2 CD Present Childhood
+           ksads2_16_856_t,      # V2 CD Present Adolescent
+           ksads2_16_857_t,      # V2 CD Past Childhood
+           ksads2_16_858_t))     # V2 CD Past Adolescent
+
+table(stack(select(CDP, starts_with("ksads")))$values, 
+      useNA="always")
+
+table(stack(select(CDY, starts_with("ksads")))$values, 
+      useNA="always")
+
+CDP_V <- CDP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "1_year_follow_up_y_arm_1",
+             "2_year_follow_up_y_arm_1",
+             "3_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+CDY_V <- CDY %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+CDP <- CDP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(CDP_V, by="src_subject_id")
+
+CDY <- CDY %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(CDY_V, by="src_subject_id")
+
+CD <- full_join(CDP, CDY, by="src_subject_id") %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(TC=TC.x+TC.y,
+         AS=AS.x+AS.y,
+         .keep="unused") %>%
+  mutate(nCD=as.numeric(TC>(AS/2)),
+         bnCD=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=CD$nCD, Broad=CD$bnCD)
+
+DAT <- DAT %>%
+  left_join(CD, by="src_subject_id")
+
+rm(CD, CDP, CDY, CDP_V, CDY_V)
+
+# 3.18. TIC DISORDERS MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# There are no available diagnoses in this modules. Instead, we will construct 
+# a tic disorder diagnosis as follows:
+# presence of motor or vocal tics = broad diagnosis
+# presence of motor and vocal tics = narrow diagnosis
+# 
+# Available symptoms include:
+# ksads2_17_99_p - Motor Tics, Present
+# ksads2_17_100_p - Motor Tics, Past
+# ksads2_17_101_p - Phonic Tics, Present
+# ksads2_17_102_p - Phonic Tics, Past
+#
+# Abbreviations:
+# TD - tic disorder
+#------------------------------------------------------------------------------
+
+TDP <- K2P %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,            # Event name
+           ksads2_17_99_p,       # V2 Motor Tics Present
+           ksads2_17_100_p,      # V2 Motor Tics Past
+           ksads2_17_101_p,      # V2 Phonic Tics Present
+           ksads2_17_102_p))     # V2 Phonic Tics Past
+
+table(stack(select(TDP, starts_with("ksads")))$values, 
+      useNA="always")
+
+TDP <- TDP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=sum(value)) 
+
+TD <- TDP %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(nTD=as.numeric(LC>1),
+         bnTD=as.numeric(LC>0),
+         .keep="unused")
+
+table(Narrow=TD$nTD, Broad=TD$bnTD)
+
+DAT <- DAT %>%
+  left_join(TD, by="src_subject_id")
+
+rm(TD, TDP, TDP_V)
+
+# 3.19. AUTISM SPECTRUM DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, data removed due to programming errors.
+#------------------------------------------------------------------------------
+
+# 3.20. ALCOHOL USE DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, out of purview.
+#------------------------------------------------------------------------------
+
+# 3.21. DRUG USE DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, out of purview.
+#------------------------------------------------------------------------------
+
+# 3.22. POST-TRAUMATIC STRESS DISORDER MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Available diagnoses include:
+#	ksads_21_921_p - PTSD Present [F94.1]
+#	ksads_21_922_p - PTSD Past [F94.1]
+#	ksads2_21_881_p - PTSD Present [F94.1]
+#	ksads2_21_882_p - PTSD Remission [F94.1]
+#	ksads2_21_883_p - PTSD Past [F94.1]
+#
+# Abbreviations:
+# PTSD - post-traumatic stress disorder
+#------------------------------------------------------------------------------
+
+PTSDP <- full_join(K1P, K2P, 
+                   by=c("src_subject_id"="src_subject_id",
+                        "eventname"="eventname")) %>%
+  select(c(src_subject_id,       # Subject ID
+           eventname,             # Event name
+           ksads_21_921_p,        # V1 PTSD Present
+           ksads_21_922_p,        # V1 PTSD Past
+           ksads2_21_881_p,       # V2 PTSD Present
+           ksads2_21_882_p,       # V2 PTSD Remission
+           ksads2_21_883_p))      # V2 PTSD Past
+
+table(stack(select(PTSDP, starts_with("ksads")))$values, 
+      useNA="always")
+
+PTSDP_V <- PTSDP %>%
+  select(c(src_subject_id, eventname)) %>%
+  filter(eventname %in%
+           c("baseline_year_1_arm_1",
+             "2_year_follow_up_y_arm_1")) %>%
+  group_by(src_subject_id) %>%
+  summarise(AS=n())
+
+PTSDP <- PTSDP %>%
+  mutate(across(starts_with("ksads"),
+                ~replace(., which(. %in% c(555, 888)), NA))) %>%
+  pivot_longer(cols=starts_with("ksads")) %>% 
+  filter(!is.na(value)) %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(src_subject_id, eventname) %>%
+  summarise(LC=as.numeric(sum(value)>0)) %>%
+  group_by(src_subject_id) %>%
+  summarise(TC=sum(LC)) %>%
+  full_join(PTSDP_V, by="src_subject_id")
+
+PTSD <- PTSDP %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.na(.)), 0))) %>%
+  mutate(nPTSD=as.numeric((TC>(AS/2)) & (AS>1)),
+         bnPTSD=as.numeric(TC>0),
+         .keep="unused")
+
+table(Narrow=PTSD$nPTSD, Broad=PTSD$bnPTSD)
+
+DAT <- DAT %>%
+  left_join(PTSD, by="src_subject_id")
+
+rm(PTSD, PTSDP, PTSDP_V)
+
+# 3.23. SLEEP PROBLEMS MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, out of purview.
+#------------------------------------------------------------------------------
+
+# 3.24. SUICIDALITY MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, out of purview.
+#------------------------------------------------------------------------------
+
+# 3.25. HOMICIDALITY MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, out of purview.
+#------------------------------------------------------------------------------
+
+# 3.26. SELECTIVE MUTISM MODULE
+
+#------------------------------------------------------------------------------
+# NOTE:
+# Skipped, because module was not administered to participants at any point.
+#------------------------------------------------------------------------------
+
+###############################
+## PART 4. ANALYZE DIAGNOSES ##
+###############################
+
+# 4.1. DEFINE BROAD AND NARROW DATA FRAMES
+Broad <- DAT %>%
+  select(c(src_subject_id, starts_with("b")))
+
+Narrow <- DAT %>%
+  select(c(src_subject_id, starts_with("n")))
+
+# 4.2. CREATE PREVALENCE AND COMORBIDITY TABLES
 NarrowNames <- colnames(Narrow[,-1])
 BroadNames <- colnames(Broad[,-1])
+
 Types <- c("Narrow", "Broad")
 
 Prevs <- data.frame(
-    Disorder=as.character(NULL),
-    Type=as.character(NULL),
-    Prevalence=as.numeric(NULL),
-    PrevalenceU95=as.numeric(NULL),
-    PrevalenceL95=as.numeric(NULL),
-    stringsAsFactors=FALSE)
+  Disorder=as.character(NULL),
+  Type=as.character(NULL),
+  P=as.numeric(NULL),
+  L95=as.numeric(NULL),
+  U95=as.numeric(NULL),
+  stringsAsFactors=FALSE)
 
 Comos <- data.frame(
-    Primary=as.character(NULL),
-    Secondary=as.character(NULL),
-    Type=as.character(NULL),
-    Comorbidity=as.numeric(NULL),
-    ComorbidityU95=as.numeric(NULL),
-    ComorbidityL95=as.numeric(NULL),
-    stringsAsFactors=FALSE)
+  Primary=as.character(NULL),
+  Secondary=as.character(NULL),
+  Type=as.character(NULL),
+  C=as.numeric(NULL),
+  L95=as.numeric(NULL),
+  U95=as.numeric(NULL),
+  stringsAsFactors=FALSE)
 
 for(i in Types){
-    
-    if(i=="Narrow") {
+  
+  if(i=="Narrow") {
     Names <- NarrowNames
     Data <- Narrow
-    } else if(i=="Broad") {
+  } else if(i=="Broad") {
     Names <- BroadNames
     Data <- Broad
-    }
+  }
+  
+  for(j in Names){
     
-    for(j in Names){
-        
-        DatA <- pull(Data, j)
-        
-        VecT <- table(Primary=DatA, useNA="always")
-        
-        N <- sum(VecT[1:2])
-        T <- sum(VecT[2])
-        
-        pEST <- T / N
-        pUP <- pEST + 1.96 * sqrt((pEST*(1-pEST))/N)
-        pDO <- pEST - 1.96 * sqrt((pEST*(1-pEST))/N)
-        
-        pRow <- data.frame(
-            Disorder=j,
-            Type=i,
-            Prevalence=round(pEST*100, digits=2),
-            PrevalenceU95=round(pUP*100, digits=2),
-            PrevalenceL95=round(pDO*100, digits=2),
-            stringsAsFactors=FALSE)
-        
-        Prevs <- rbind(Prevs, pRow)
-        
-        for(k in Names){
-            
-            DatB <- pull(Data, k)
-            
-            ConT <- table(Primary=DatA, Secondary=DatB, useNA="always")
-            
-            M <- sum(ConT[2,1:2])
-            D <- sum(ConT[2,2])
-
-            cEST <- D / M
-            cUP <- cEST + 1.96 * sqrt((cEST*(1-cEST))/M)
-            cDO <- cEST - 1.96 * sqrt((cEST*(1-cEST))/M) 
-        
-            cRow <- data.frame(
-                Primary=j,
-                Secondary=k,
-                Type=i,
-                Comorbidity=round(cEST*100, digits=2),
-                ComorbidityU95=round(cUP*100, digits=2),
-                ComorbidityL95=round(cDO*100, digits=2),
-                stringsAsFactors=FALSE)
-            
-            Comos <- rbind(Comos, cRow)
-        }
+    DatA <- pull(Data, j)
+    
+    VecT <- table(Primary=DatA, useNA="always")
+    
+    N <- sum(VecT[1:2])
+    T <- sum(VecT[2])
+    
+    pEST <- T / N
+    pUP <- pEST + 1.96 * sqrt((pEST*(1-pEST))/N)
+    pDO <- pEST - 1.96 * sqrt((pEST*(1-pEST))/N)
+    
+    pRow <- data.frame(
+      Disorder=j,
+      Type=i,
+      P=round(pEST*100, digits=1),
+      L95=round(pDO*100, digits=1),
+      U95=round(pUP*100, digits=1),
+      stringsAsFactors=FALSE)
+    
+    Prevs <- rbind(Prevs, pRow)
+    
+    for(k in Names){
+      
+      DatB <- pull(Data, k)
+      
+      ConT <- table(Primary=DatA, Secondary=DatB, useNA="always")
+      
+      M <- sum(ConT[2,1:2])
+      D <- sum(ConT[2,2])
+      
+      cEST <- D / M
+      cUP <- cEST + 1.96 * sqrt((cEST*(1-cEST))/M)
+      cDO <- cEST - 1.96 * sqrt((cEST*(1-cEST))/M) 
+      
+      cRow <- data.frame(
+        Primary=j,
+        Secondary=k,
+        Type=i,
+        C=round(cEST*100, digits=1),
+        L95=round(cDO*100, digits=1),
+        U95=round(cUP*100, digits=1),
+        stringsAsFactors=FALSE)
+      
+      Comos <- rbind(Comos, cRow)
     }
+  }
 }
 
-filter(Prevs, Type=="Narrow")
-filter(Prevs, Type=="Broad")
+table(stack(select(Prevs, where(is.numeric)))$values, 
+      useNA="always")
 
-filter(Comos, Type=="Narrow" & Primary=="nOCD")
-filter(Comos, Type=="Narrow" & Secondary=="nOCD")
+table(stack(select(Comos, where(is.numeric)))$values, 
+      useNA="always")
 
-### PLOTTING DATA
+Comos <- Comos %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(.<0), 0))) %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(.>100), 100))) %>%
+  mutate(across(where(is.numeric),
+                ~replace(., which(is.nan(.)), 0)))
 
-# Reference Data
-pRefs <- data.frame(
-    Disorder=c(       "BED",  "BD",   "BD1",  "BD2",  "CD",   "GAD",  "OCD",  "ODD",  "PD",   "PSY",  "PTSD",   "SP",     "SeAD",   "SoAD",   "TD"),
-    Prevalence=c(     1.32,   1.90,   NA,     NA,     4.40,   1.00,   2.30,   12.00,  1.80,   1.20,   3.70,     21.60,    7.80,     7.70,     0.86),
-    PrevalenceL95=c(  0.88,   1.31,   NA,     NA,     2.05,   0.41,   0.93,   9.65,   1.02,   0.79,   2.72,     18.46,    6.62,     6.52,     0.85),
-    PrevalenceU95=c(  1.83,   2.49,   NA,     NA,     6.75,   1.59,   3.67,   14.35,  2.58,   1.75,   4.68,     24.74,    8.97,     8.88,     0.87),
-    Type="Reference",
-    stringsAsFactors=FALSE)
+filter(Prevs, Type=="Narrow") %>%
+  select(-Type) %>%
+  mutate("Prev (CI95)"=paste0(P, " (", L95, ", ", U95,")"),
+         .keep="unused") 
 
-cpRefs <- data.frame(
-    Secondary=c(    "BED",  "BD",   "BD1",  "BD2",  "CD",   "GAD",  "ODD",  "PD",   "PSY",  "PTSD",   "SP",   "SeAD",   "SoAD",   "TD"),
-    Primary="OCD",
-    Comorbidity=c(   7.9,   5.65,   2.31,   3.34,   6.67,   26.60,  43.33,  6.1,    1.7,    10.38,    12.8,   33.33,    13.6,     8.44),
-    ComorbidityL95=c(6.0,   1.39,   0,      0.03,   1.85,   19.30,  27.38,  0.5,    0.78,   4.76,     4.7,    19.23,    10.3,     7.17),
-    ComorbidityU95=c(9.8,   9.91,   5.07,   6.66,   21.32,  34.70,  60.8,   16.40,  2.62,   16,       23.9,   51.22,    17.1,     9.92),
-    Type="Reference",
-    stringsAsFactors=FALSE)
+filter(Prevs, Type=="Broad") %>%
+  select(-Type) %>%
+  mutate("Prev (CI95)"=paste0(P, " (", L95, ", ", U95,")"),
+         .keep="unused")
 
-csRefs <- data.frame(
-    Primary=c(      "BED",  "BD",   "BD1",  "BD2",  "CD",   "GAD",  "ODD",  "PD",   "PSY",  "PTSD",   "SP",   "SeAD",   "SoAD",   "TD"),
-    Secondary="OCD",
-    Comorbidity=c(  NA,     44.78,  NA,     NA,     NA,     10.38,  NA,     14.29,   15,     4.23,    NA,     9.2,      10.8,     13.89),
-    ComorbidityL95=c(NA,    32.87,  NA,     NA,     NA,     8,      NA,     7.1,     8.42,   2.24,    NA,     7.79,     7.3,      8.83),
-    ComorbidityU95=c(NA,    56.68,  NA,     NA,     NA,     13.36,  NA,     26.67,   21.58,  7.83,    NA,     10.83,    15.68,    18.94),
-    Type="Reference",
-    stringsAsFactors=FALSE)
+filter(Comos, Type=="Narrow" & Primary=="nOCD") %>%
+  select(-Type) %>%
+  mutate("Como (CI95)"=paste0(C, " (", L95, ", ", U95,")"),
+         .keep="unused") 
 
-cRefs <- rbind(cpRefs, csRefs)
+filter(Comos, Type=="Narrow" & Secondary=="nOCD")  %>%
+  select(-Type) %>%
+  mutate("Como (CI95)"=paste0(C, " (", L95, ", ", U95,")"),
+         .keep="unused") 
+
+filter(Comos, Type=="Broad" & Primary=="bnOCD")  %>%
+  select(-Type) %>%
+  mutate("Como (CI95)"=paste0(C, " (", L95, ", ", U95,")"),
+         .keep="unused") 
+
+filter(Comos, Type=="Broad" & Secondary=="bnOCD")  %>%
+  select(-Type) %>%
+  mutate("Como (CI95)"=paste0(C, " (", L95, ", ", U95,")"),
+         .keep="unused")
+
+###############################
+## PART 5. ANALYZE CBCL DATA ##
+###############################
+
+# 5.1. PREPARE CBCL DATASET
+ID_KEEP <- intersect(intersect(ID_BL, ID_F1), ID_F2)
+
+CBCL_OC <- CBCL %>%
+  filter(src_subject_id %in% ID_KEEP) %>%
+  filter(eventname!="3_year_follow_up_y_arm_1") %>%
+  select(c(src_subject_id,
+           cbcl_q09_p,   # Can't get their mind off certain thoughts; obsessions
+           cbcl_q31_p,   # Fears they might think or do something bad
+           cbcl_q52_p,   # Feels too guilty
+           cbcl_q66_p,   # Repeats certain acts over and over; compulsions
+           cbcl_q85_p,   # Strange ideas
+           cbcl_q112_p)) # Worries
+
+table(stack(select(CBCL_OC, starts_with("cbcl")))$values, 
+      useNA="always")
+
+ID_DROP <- CBCL_OC %>%
+  filter(if_any(everything(), ~ is.na(.))) %>%
+  pull(src_subject_id) %>%
+  unique(.)
+
+CBCL_OC <- CBCL_OC %>%
+  filter(!src_subject_id %in% ID_DROP) %>%
+  mutate(across(starts_with("cbcl_q"),
+                ~as.numeric(.))) %>%
+  mutate(OCS=cbcl_q09_p+cbcl_q66_p,
+         OCP=cbcl_q09_p+cbcl_q31_p+cbcl_q52_p+cbcl_q66_p+cbcl_q85_p+cbcl_q112_p,
+         OBS=cbcl_q09_p,
+         COM=cbcl_q66_p,
+         .keep="unused") %>%
+  group_by(src_subject_id) %>%
+  summarise(OCS=sum(OCS),
+            OCP=sum(OCP),
+            OBS=sum(OBS),
+            COM=sum(COM)) %>%
+  left_join(select(DAT, src_subject_id, nOCD, bnOCD, nTD, bnTD), 
+            by="src_subject_id") %>%
+  mutate(OCD_Text = case_when(
+    bnOCD==0 ~ "No OCD",
+    bnOCD==1 & nOCD==0 ~ "Broad OCD",
+    bnOCD==1 & nOCD==1 ~ "Narrow OCD"),
+    TD_Text = case_when(
+      bnTD==0 ~ "TD Negative",
+      bnTD==1 & nTD==0 ~ "Broad TD",
+      bnTD==1 & nTD==1 ~ "Narrow TD")) %>%
+  left_join(select(filter(DB, eventname=="baseline_year_1_arm_1"), 
+                   src_subject_id, demo_sex_v2), 
+            by="src_subject_id") %>%
+  rename(sex=demo_sex_v2) %>%
+  filter(sex>0 & sex<3)
+
+CBCL_OC$OCD_Text <- factor(CBCL_OC$OCD_Text, 
+                           levels=c("No OCD", "Broad OCD", "Narrow OCD"))
+CBCL_OC$TD_Text <- factor(CBCL_OC$TD_Text, 
+                           levels=c("TD Negative", "Broad TD", "Narrow TD"))
+
+# 5.2 RUN LOGISTIC REGRESSIONS ON CBCL DATA
+LOGIT_CBCL <- list()
+
+OCD_OR <- data.frame(
+  CBCL=as.character(NULL),
+  OCD=as.character(NULL),
+  OR=as.numeric(NULL),
+  L95=as.numeric(NULL),
+  U95=as.numeric(NULL),
+  P=as.numeric(NULL),
+  K=as.numeric(NULL),
+  ACC=as.numeric(NULL),
+  SEN=as.numeric(NULL),
+  SPE=as.numeric(NULL),
+  PPV=as.numeric(NULL),
+  NPV=as.numeric(NULL),
+  F1=as.numeric(NULL),
+  stringsAsFactors=FALSE)
+
+for(i in c("OCS", "OCP", "OBS", "COM")) {
+  for(j in c("nOCD", "bnOCD")) {
+    FORMULA <- paste0("as.factor(", j, ") ~ ", i, "+ sex")
+    LOGIT_CBCL[[i]][[j]] <- glm(as.formula(FORMULA), 
+                                family=binomial(link="logit"), 
+                                data=CBCL_OC,
+                                na.action=na.exclude)
+    
+    CBCL_OC$PRED <- as.numeric(predict(LOGIT_CBCL[[i]][[j]], 
+                                       type="response")>=0.5)
+    
+    CBCL_OC$REF <- CBCL_OC[[j]]
+    
+    CONFMAT <- confusionMatrix(data=factor(CBCL_OC$PRED, levels=c(0,1)), 
+                               reference=factor(CBCL_OC$REF, levels=c(0,1)), 
+                               positive="1")
+    
+    TAB <- data.frame(
+      CBCL=i,
+      OCD=j,
+      OR=exp(coef(LOGIT_CBCL[[i]][[j]]))[i],
+      L95=exp(confint(LOGIT_CBCL[[i]][[j]]))[i, "2.5 %"],
+      U95=exp(confint(LOGIT_CBCL[[i]][[j]]))[i, "97.5 %"],
+      P=summary(LOGIT_CBCL[[i]][[j]])$coefficients[i,4],
+      K=CONFMAT$overall["Kappa"],
+      ACC=CONFMAT$overall["Accuracy"],
+      SEN=CONFMAT$byClass["Sensitivity"],
+      SPE=CONFMAT$byClass["Specificity"],
+      PPV=CONFMAT$byClass["Pos Pred Value"],
+      NPV=CONFMAT$byClass["Neg Pred Value"],
+      F1=CONFMAT$byClass["F1"],
+      stringsAsFactors=FALSE)
+    
+    OCD_OR <- rbind(OCD_OR, TAB)
+  }
+}
+
+OCD_OR <- OCD_OR %>%
+  mutate(across(OR:F1, ~ as.numeric(.))) %>%
+  mutate(Q=p.adjust(P, method="fdr"),
+         .after=P)
+
+###########################
+## PART 6. PLOT FIGURE 2 ##
+###########################
+
+# 6.1. PREPARE DATA FOR PLOTTING
+REF_PREV <- REF_PREV %>%
+  mutate(Type="Reference",
+         .after=Disorder)
 
 PlotPrev <- Prevs %>%
-    mutate(Disorder=gsub("n|bn", "", Disorder)) %>%
-    mutate(Type=ifelse(Type=="Broad","Broad + Narrow",Type)) %>%
-    filter(!Disorder %in% c("BN", "EFD")) %>%
-    bind_rows(pRefs) %>%
-    mutate(PrevalenceL95=ifelse(PrevalenceL95<0,0,PrevalenceL95))
+  mutate(Disorder=gsub("n|bn", "", Disorder)) %>%
+  mutate(Type=ifelse(Type=="Broad","Broad + Narrow",Type)) %>%
+  bind_rows(REF_PREV) %>%
+  filter(complete.cases(.))
 
-PlotComo <- Comos %>%
-    filter(Type=="Narrow" & (Primary=="nOCD" | Secondary=="nOCD") & !(Primary=="nOCD" & Secondary=="nOCD")) %>%
-    mutate(Primary=gsub("n|bn", "", Primary),
-          Secondary=gsub("n|bn", "", Secondary)) %>%
-    filter(!Primary %in% c("BN", "EFD")) %>%
-    filter(!Secondary %in% c("BN", "EFD")) %>%
-    bind_rows(cRefs) %>%
-    mutate(ComorbidityL95=ifelse(ComorbidityL95<0,0,ComorbidityL95))
+PlotPrev$Type <- factor(PlotPrev$Type, 
+                        levels=c("Narrow", "Broad + Narrow", "Reference"))
 
-# Plot Prevalences, aka Figure 5a-b
+PlotPrev$Disorder <- factor(PlotPrev$Disorder, 
+                            levels=c("BDI", "BDII", "BD", "PSY", "PD", 
+                                     "SAD", "SOPH", "SP", "GAD", "OCD", 
+                                     "BN", "BED", "ODD", "CD", "TD", "PTSD"))
+OCD_OR$CBCL <- factor(OCD_OR$CBCL, 
+                      levels=c("OCS", "OCP", "OBS", "COM"))
 
-PlotPrevBN <- PlotPrev %>%
-    filter(Type != "Narrow") %>%
-    ggplot(aes(fill=Type, y=Prevalence, x=Disorder)) +
-        geom_bar(position=position_dodge2(preserve="single"), stat="identity") + 
-        geom_errorbar(aes(ymin=PrevalenceL95, ymax=PrevalenceU95), width=0.8, position=position_dodge(0.9)) +
-        scale_fill_brewer(palette="Set1") +
-        scale_y_continuous(breaks=seq(0, 40, by=5), limits=c(0, 40)) +
-        aes(stringr::str_wrap(Disorder, 15)) +
-        labs(x=NULL, y="Prevalence (%)", title=NULL, fill=NULL) +
-        theme_bw() +
-        theme(axis.text.x = element_text(angle = 35, vjust = 1, hjust=1, size=15),
-            axis.title = element_text(size=15),
-            axis.text.y = element_text(angle=90, hjust=0.5, size=15),
-            strip.background = element_rect(fill="transparent", color="transparent"),
-            legend.position = "bottom",
-            legend.title = element_text(vjust=1, size=18),
-            legend.text = element_text(size=15, margin=margin(r=30, unit="pt")))
+# 6.2. PLOT FIGURE 2A
+F2A <- ggplot(mapping=aes(x=Disorder, y=P, ymax=U95, ymin=L95, 
+                          fill=Type, width=0.9, color=Type)) +
+  geom_bar(data=PlotPrev[PlotPrev$Typ=="Reference",], 
+           stat="identity") +
+  geom_errorbar(data=PlotPrev[PlotPrev$Typ=="Reference",]) +
+  geom_bar(data=PlotPrev[PlotPrev$Typ!="Reference",], 
+           position=position_dodge2(preserve="single", padding=0.3), 
+           stat="identity", alpha=0.8) +
+  geom_errorbar(data=PlotPrev[PlotPrev$Typ!="Reference",], 
+                position=position_dodge2(preserve="single", padding=0.3)) +
+  labs(x=NULL, y="PREVALENCE (%)", title=NULL, fill=NULL, color=NULL) +
+  scale_fill_manual(values=c("#4895ef", "#b5179e", "#adb5bd")) +
+  scale_color_manual(values=c("#4361ee", "#7209b7", "#666666")) +
+  scale_y_continuous(n.breaks=5,
+                     expand=expansion(mult=0.01)) +
+  theme_bw()  +
+  theme(axis.text.x=element_text(angle=35, vjust=1, hjust=1, size=15),
+        axis.title=element_text(size=15, face="bold", hjust=0),
+        axis.text.y=element_text(angle=90, hjust=0.5, size=15),
+        legend.position=c(0,0.95),
+        legend.justification="left",
+        legend.direction="horizontal",
+        legend.title=element_text(vjust=1, size=15),
+        legend.text=element_text(size=15),
+        legend.background=element_blank())
+F2A  
 
-PlotPrevN <- PlotPrev %>%
-    filter(Type != "Broad + Narrow") %>%
-    ggplot(aes(fill=Type, y=Prevalence, x=Disorder)) +
-        geom_bar(position=position_dodge2(preserve="single"), stat="identity") + 
-        geom_errorbar(aes(ymin=PrevalenceL95, ymax=PrevalenceU95), width=0.8, position=position_dodge(0.9)) +
-        scale_fill_brewer(palette="Set1") +
-        scale_y_continuous(breaks=seq(0, 25, by=5), limits=c(0, 25)) +
-        aes(stringr::str_wrap(Disorder, 15)) +
-        labs(x=NULL, y="Prevalence (%)", title=NULL, fill=NULL) +
-        theme_bw() +
-        theme(axis.text.x = element_text(angle = 35, vjust = 1, hjust=1, size=15),
-            axis.title = element_text(size=15),
-            axis.text.y = element_text(angle=90, hjust=0.5, size=15),
-            legend.position = "bottom",
-            legend.title = element_text(vjust=1, size=18),
-            legend.text = element_text(size=15, margin=margin(r=30, unit="pt")))
+# 6.3. PLOT FIGURE 2B
+CBCL_HIST <- list()
 
-plot_grid(PlotPrevBN, PlotPrevN, labels=c("A", "B"), ncol=1, label_size = 18)
+for(i in c("OCS", "OCP", "OBS", "COM")){
+  DF <- CBCL_OC[, c(i, "OCD_Text")]
+  DF$X <- DF[[i]]
+  
+  CBCL_HIST[[i]] <- 
+    DF %>%
+    filter(complete.cases(.)) %>%
+    ggplot(aes(x=X)) +
+    geom_histogram(binwidth=1, color="#ffffff", fill="#4895ef") +
+    theme_bw() +
+    scale_y_continuous(n.breaks=3,
+                       expand=expansion(mult=0.025)) +
+    scale_x_continuous(n.breaks=4,
+                       expand=expansion(mult=0.015)) +
+    theme(axis.text.x=element_text(size=15),
+          plot.title=element_text(hjust=0, size=15, face="bold"),
+          axis.title=element_text(size=15),
+          axis.text.y=element_text(angle=45, hjust=0.5, size=15),
+          legend.position="bottom",
+          legend.title=element_text(vjust=1, size=15),
+          legend.text=element_text(size=15)) +
+    facet_wrap(. ~ OCD_Text, ncol=3, scales="free_y", strip.position="bottom")
+  
+  if(i=="COM"){
+    CBCL_HIST[[i]] <- CBCL_HIST[[i]] +
+      labs(y="COUNTS", x=NULL, title=i) +
+      theme(strip.background = element_rect(fill="transparent", 
+                                            color="transparent"),
+            strip.text=element_text(face="bold", size=15, hjust=0),
+            strip.placement="outside",
+            axis.title.y=element_text(hjust=0, face="bold"))} 
+  else{
+    CBCL_HIST[[i]] <- CBCL_HIST[[i]] +
+      labs(y=" ", x=NULL, title=i) +
+      theme(strip.background = element_blank(),
+            strip.text=element_blank())}
+}
 
-ggsave("./Prevalences.png", height=12, width=10, 
+F2B <- plot_grid(CBCL_HIST$OCS, 
+                 CBCL_HIST$OCP, 
+                 CBCL_HIST$OBS, 
+                 CBCL_HIST$COM, 
+                 rel_heights=c(1,1,1,1.2),
+                 ncol=1, label_size = 18)
+
+F2B
+
+# 6.4. PLOT FIGURE 2C
+F2C <- OCD_OR %>% 
+  ggplot(aes(x=OR, xmin=L95, xmax=U95, y=OCD)) +
+  geom_errorbar(width=.4, color="#4361ee", size=1) +
+  geom_point(shape=18, color="#4895ef", size=5) +
+  geom_vline(xintercept=1, linetype="dashed", color="#b5179e", size=1) +
+  labs(y=NULL, x="ODDS RATIO") +
+  scale_x_continuous(breaks=seq(0.5, 3.5, 0.5), limits=c(0.9, 3.6),
+                     expand=expansion(mult=0)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=15),
+        plot.title = element_text(hjust=0, size=18, face="bold"),
+        axis.title = element_text(size=15, hjust=0, face="bold"),
+        axis.text.y = element_text(angle=90, hjust=0.5, size=15),
+        strip.background = element_rect(fill="transparent", color="transparent"),
+        strip.text = element_text(face="bold", size=15, hjust=0),
+        strip.placement = "outside",
+        legend.position = "bottom",
+        legend.title = element_text(vjust=1, size=18),
+        legend.text = element_text(size=15)) +
+  facet_wrap(.~CBCL, ncol=1)
+
+F2C
+
+# 6.5. ORGANIZE AND SAVE FIGURE 2
+plot_grid(F2A, plot_grid(F2B, F2C, 
+                         ncol=2, labels=c("B", "C"), label_size=20),
+          rel_heights=c(2,3), ncol=1, labels=c("A",""), label_size=20)
+
+ggsave("./Ivankovic_Figure2.png", height=15, width=12, 
        device="png", units="in", dpi=300, plot=last_plot(), 
        bg="white")
+
+############################
+## PART 7. PLOT FIGURE S2 ##
+############################
+
+# PREPARE COMORBIDITY DATA FOR PLOTTING
+REF_COM <- REF_COM %>%
+  mutate(Type="Reference",
+         .after=Secondary) %>%
+  rename(C=P)
+
+PlotComo <- Comos %>%
+  filter(Type=="Narrow" & (Primary=="nOCD" | Secondary=="nOCD") & !(Primary=="nOCD" & Secondary=="nOCD")) %>%
+  mutate(Primary=gsub("n|bn", "", Primary),
+         Secondary=gsub("n|bn", "", Secondary)) %>%
+  bind_rows(REF_COM) %>%
+  filter(Primary!="BN"&Secondary!="BN")
 
 # Plot Comorbidities, aka Figure 5
 PlotComoP <- PlotComo %>%
-    filter(Primary=="OCD") %>%
-    ggplot(aes(fill=Type, y=Comorbidity, x=Secondary)) + 
-        geom_bar(position=position_dodge2(preserve="single"), stat="identity") + 
-        geom_errorbar(aes(ymin=ComorbidityL95, ymax=ComorbidityU95), width=0.8, position=position_dodge(0.9)) +
-        scale_fill_brewer(palette="Set1") +
-        aes(stringr::str_wrap(Secondary, 15)) +
-        labs(x = NULL, y = "Cormorbidity Rate (%)", title = "OCD Primary", fill="OCD diagnosis") +
-        theme_bw() +
-        theme(axis.text.x = element_text(angle = 35, vjust = 1, hjust=1, size=15),
-            plot.title = element_text(face="bold.italic", size=15, hjust=0),
-            axis.title = element_text(size=15),
-            axis.text.y = element_text(angle=90, hjust=0.5, size=15),
-            legend.position = "none")
+  filter(Primary=="OCD") %>%
+  ggplot(aes(fill=Type, y=C, x=Secondary)) + 
+  geom_bar(position=position_dodge2(preserve="single"), stat="identity") + 
+  geom_errorbar(aes(ymin=L95, ymax=U95), width=0.8, position=position_dodge(0.9)) +
+  scale_fill_manual(values=c("#4895ef", "#adb5bd")) +
+  scale_color_manual(values=c("#4361ee", "#666666")) +
+  aes(stringr::str_wrap(Secondary, 15)) +
+  labs(x = NULL, y = "Cormorbidity Rate (%)", title = "OCD Primary", fill="OCD diagnosis") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 35, vjust = 1, hjust=1, size=15),
+        plot.title = element_text(face="bold.italic", size=15, hjust=0),
+        axis.title = element_text(size=15),
+        axis.text.y = element_text(angle=90, hjust=0.5, size=15),
+        legend.position = "none")
 
 PlotComoS <- PlotComo %>%
-    filter(Secondary=="OCD") %>%
-    ggplot(aes(fill=Type, y=Comorbidity, x=Primary)) + 
-        geom_bar(position=position_dodge2(preserve="single"), stat="identity") + 
-        geom_errorbar(aes(ymin=ComorbidityL95, ymax=ComorbidityU95), width=0.8, position=position_dodge(0.9)) +
-        scale_fill_brewer(palette="Set1") +
-        coord_cartesian(ylim=c(0,100)) +
-        aes(stringr::str_wrap(Primary, 15)) +
-        labs(x = NULL, y = "Cormorbidity Rate (%)", title = "OCD Secondary", fill="OCD diagnosis") +
-        theme_bw() +
-        theme(axis.text.x = element_text(angle = 35, vjust = 1, hjust=1, size=15),
-            plot.title = element_text(face="bold.italic", size=15, hjust=0),
-            axis.title = element_text(size=15),
-            axis.text.y = element_text(angle=90, hjust=0.5, size=15),
-            legend.position = "bottom",
-            legend.title = element_text(vjust=1, size=18, margin=margin(r=15, unit="pt")),
-            legend.text = element_text(size=15, margin=margin(r=15, unit="pt")))
+  filter(Secondary=="OCD") %>%
+  ggplot(aes(fill=Type, y=C, x=Primary)) + 
+  geom_bar(position=position_dodge2(preserve="single"), stat="identity") + 
+  geom_errorbar(aes(ymin=L95, ymax=U95), width=0.8, position=position_dodge(0.9)) +
+  scale_fill_manual(values=c("#4895ef", "#adb5bd")) +
+  scale_color_manual(values=c("#4361ee", "#666666")) +
+  coord_cartesian(ylim=c(0,100)) +
+  aes(stringr::str_wrap(Primary, 15)) +
+  labs(x = NULL, y = "Cormorbidity Rate (%)", title = "OCD Secondary", fill="OCD diagnosis") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 35, vjust = 1, hjust=1, size=15),
+        plot.title = element_text(face="bold.italic", size=15, hjust=0),
+        axis.title = element_text(size=15),
+        axis.text.y = element_text(angle=90, hjust=0.5, size=15),
+        legend.position = "bottom",
+        legend.title = element_text(vjust=1, size=18, margin=margin(r=15, unit="pt")),
+        legend.text = element_text(size=15, margin=margin(r=15, unit="pt")))
 
 plot_grid(PlotComoP, PlotComoS, labels=c("A", "B"), ncol=1, label_size = 18)
 
-ggsave("./Comorbidities.png", height=12, width=10, 
-       device="png", units="in", dpi=300, plot=last_plot(), 
-       bg="white")
-     
-### CBCL ANALYSES
-
-CBCL_OC <- CBCLR %>%
-    filter(eventname %in% c("baseline_year_1_arm_1", "1_year_follow_up_y_arm_1", "2_year_follow_up_y_arm_1")) %>%
-    select(subjectkey, sex, cbcl_q09_p, cbcl_q31_p, cbcl_q52_p, cbcl_q66_p, cbcl_q85_p, cbcl_q112_p) %>%
-    rowwise() %>%
-    mutate(OCS = sum(c(as.numeric(cbcl_q09_p), as.numeric(cbcl_q66_p)), na.rm=TRUE),
-           OCP = sum(c(as.numeric(cbcl_q09_p), as.numeric(cbcl_q31_p), as.numeric(cbcl_q52_p), 
-                       as.numeric(cbcl_q66_p), as.numeric(cbcl_q85_p), as.numeric(cbcl_q112_p)), na.rm=TRUE),
-           OBS = as.numeric(cbcl_q09_p),
-           COM = as.numeric(cbcl_q66_p),
-           .keep="unused") %>%
-    group_by(subjectkey, sex) %>%
-    summarise(OCS = sum(as.numeric(OCS), na.rm = TRUE),
-              OCP = sum(as.numeric(OCP), na.rm = TRUE),
-              OBS = sum(as.numeric(OBS), na.rm = TRUE),
-              COM = sum(as.numeric(COM), na.rm = TRUE),) %>%
-    left_join(select(OCD, subjectkey, LifetimeOCD), by = c("subjectkey"="subjectkey")) %>%
-    left_join(select(TicsP, subjectkey, Narrow_CTD), by = c("subjectkey"="subjectkey")) %>%
-    rename("OCD"="LifetimeOCD", CTD="Narrow_CTD") %>%
-    mutate(OCD_Text = case_when(
-        OCD == 0 ~ "OCD Negative",
-        OCD == 1 ~ "Broad OCD",
-        OCD == 2 ~ "Narrow OCD"),
-          CTD_Text = case_when(
-        CTD == 0 ~ "TD Negative",
-        CTD == 1 ~ "Broad TD",
-        CTD == 2 ~ "Narrow TD"))
-
-CBCL_OC$OCD_Text <- factor(CBCL_OC$OCD_Text, levels=c("OCD Negative", "Broad OCD", "Narrow OCD"))
-CBCL_OC$CTD_Text <- factor(CBCL_OC$CTD_Text, levels=c("TD Negative", "Broad TD", "Narrow TD"))
-
-CBCLHistOCS <- CBCL_OC %>%
-    ggplot(aes(x=OCS)) +
-        geom_histogram(binwidth=1, fill="firebrick3", color="white") +
-        theme_bw() +
-        labs(y=NULL, x=NULL, title="OCS") +
-        theme(axis.text.x = element_text(size=15),
-            plot.title = element_text(hjust = 0, size=15, face="plain"),
-            axis.title = element_text(size=15),
-            axis.text.y = element_text(angle=45, hjust=1, size=15),
-            strip.background = element_blank(),
-            strip.text = element_blank(),
-            legend.position = "bottom",
-            legend.title = element_text(vjust=1, size=15),
-            legend.text = element_text(size=15)) +
-        facet_wrap(. ~ OCD_Text, ncol=3, scales="free_y", strip.position="bottom")
-
-CBCLHistOCP <- CBCL_OC %>%
-    ggplot(aes(x=OCP)) +
-        geom_histogram(binwidth=3, fill="firebrick3", color="white") +
-        theme_bw() +
-        labs(y=NULL, x=NULL, title="OCP") +
-        theme(axis.text.x = element_text(size=15),
-            plot.title = element_text(hjust = 0, size=15, face="plain"),
-            axis.title = element_text(size=15),
-            axis.text.y = element_text(angle=45, hjust=1, size=15),
-            strip.background = element_blank(),
-            strip.text = element_blank(),
-            legend.position = "bottom",
-            legend.title = element_text(vjust=1, size=15),
-            legend.text = element_text(size=15)) +
-        facet_wrap(. ~ OCD_Text, ncol=3, scales="free_y", strip.position="bottom")
-
-CBCLHistCOM <- CBCL_OC %>%
-    ggplot(aes(x=COM)) +
-        geom_histogram(binwidth=1, fill="firebrick3", color="white") +
-        theme_bw() +
-        labs(y=NULL, x=NULL, title="Compulsions") +
-        theme(axis.text.x = element_text(size=15),
-            plot.title = element_text(hjust = 0, size=15, face="plain"),
-            axis.title = element_text(size=15),
-            axis.text.y = element_text(angle=45, hjust=1, size=15),
-            strip.background = element_blank(),
-            strip.text = element_blank(),
-            legend.position = "bottom",
-            legend.title = element_text(vjust=1, size=15),
-            legend.text = element_text(size=15)) +
-        facet_wrap(. ~ OCD_Text, ncol=3, scales="free_y", strip.position="bottom")
-
-CBCLHistOBS <- CBCL_OC %>%
-    ggplot(aes(x=OBS)) +
-        geom_histogram(binwidth=1, fill="firebrick3", color="white") +
-        theme_bw() +
-        labs(y=NULL, x=NULL, title="Obsessions") +
-        theme(axis.text.x = element_text(size=15),
-            plot.title = element_text(hjust = 0, size=15, face="plain"),
-            axis.title = element_text(size=15),
-            axis.text.y = element_text(angle=45, hjust=1, size=15),
-            strip.background = element_rect(fill="transparent", color="transparent"),
-            strip.text = element_text(face="plain", size=15, hjust=0),
-            strip.placement = "outside",
-            legend.position = "bottom",
-            legend.title = element_text(vjust=1, size=15),
-            legend.text = element_text(size=15, face="plain")) +
-        facet_wrap(. ~ OCD_Text, ncol=3, scales="free_y", strip.position="bottom")
-
-CBCLHist <- plot_grid(CBCLHistOCS, CBCLHistOCP, CBCLHistCOM, CBCLHistOBS, ncol=1, label_size = 18)
-
-CBCL_OC <- CBCL_OC %>%
-    mutate(bnOCD = as.numeric(OCD > 0),
-           nOCD = as.numeric(OCD > 1),
-           bnTD = as.numeric(CTD > 0),
-           nTD = as.numeric(CTD > 1))
-
-OCS_OCD_B <- glm(as.factor(bnOCD) ~ OCS + sex, family=binomial(link='logit'), data=CBCL_OC)
-OCS_OCD_N <- glm(as.factor(nOCD) ~ OCS + sex, family=binomial(link='logit'), data=CBCL_OC)
-
-OCP_OCD_B <- glm(as.factor(bnOCD) ~ OCP + sex, family=binomial(link='logit'), data=CBCL_OC)
-OCP_OCD_N <- glm(as.factor(nOCD) ~ OCP + sex, family=binomial(link='logit'), data=CBCL_OC)
-
-COM_OCD_B <- glm(as.factor(bnOCD) ~ COM + sex, family=binomial(link='logit'), data=CBCL_OC)
-COM_OCD_N <- glm(as.factor(nOCD) ~ COM + sex, family=binomial(link='logit'), data=CBCL_OC)
-
-OBS_OCD_B <- glm(as.factor(bnOCD) ~ OBS + sex, family=binomial(link='logit'), data=CBCL_OC)
-OBS_OCD_N <- glm(as.factor(nOCD) ~ OBS + sex, family=binomial(link='logit'), data=CBCL_OC)
-
-OCD_OR <- as.data.frame(rbind(  
-        cbind(OR = exp(coef(OCS_OCD_B)), exp(confint(OCS_OCD_B)), P=summary(OCS_OCD_B)$coefficients[,4], ND=OCS_OCD_B$null.deviance, D=OCS_OCD_B$deviance, OCD="bnOCD", X="OCS")["OCS",],
-        cbind(OR = exp(coef(OCS_OCD_N)), exp(confint(OCS_OCD_N)), P=summary(OCS_OCD_N)$coefficients[,4], ND=OCS_OCD_N$null.deviance, D=OCS_OCD_N$deviance, OCD="nOCD", X="OCS")["OCS",],
-    
-        cbind(OR = exp(coef(OCP_OCD_B)), exp(confint(OCP_OCD_B)), P=summary(OCP_OCD_B)$coefficients[,4], ND=OCP_OCD_B$null.deviance, D=OCP_OCD_B$deviance, OCD="bnOCD", X="OCP")["OCP",],
-        cbind(OR = exp(coef(OCP_OCD_N)), exp(confint(OCP_OCD_N)), P=summary(OCP_OCD_N)$coefficients[,4], ND=OCP_OCD_N$null.deviance, D=OCP_OCD_N$deviance, OCD="nOCD", X="OCP")["OCP",],
-    
-        cbind(OR = exp(coef(COM_OCD_B)), exp(confint(COM_OCD_B)), P=summary(COM_OCD_B)$coefficients[,4], ND=COM_OCD_B$null.deviance, D=COM_OCD_B$deviance, OCD="bnOCD", X="Compulsions")["COM",],
-        cbind(OR = exp(coef(COM_OCD_N)), exp(confint(COM_OCD_N)), P=summary(COM_OCD_N)$coefficients[,4], ND=COM_OCD_N$null.deviance, D=COM_OCD_N$deviance, OCD="nOCD", X="Compulsions")["COM",],
-    
-        cbind(OR = exp(coef(OBS_OCD_B)), exp(confint(OBS_OCD_B)), P=summary(OBS_OCD_B)$coefficients[,4], ND=OBS_OCD_B$null.deviance, D=OBS_OCD_B$deviance, OCD="bnOCD", X="Obsessions")["OBS",],
-        cbind(OR = exp(coef(OBS_OCD_N)), exp(confint(OBS_OCD_N)), P=summary(OBS_OCD_N)$coefficients[,4], ND=OBS_OCD_N$null.deviance, D=OBS_OCD_N$deviance, OCD="nOCD", X="Obsessions")["OBS",]
-))
-
-OCD_OR <- OCD_OR %>%
-    mutate(OR = as.numeric(OR),
-           `2.5 %` = as.numeric(`2.5 %`),
-           `97.5 %` = as.numeric(`97.5 %`),
-            P = as.numeric(P),
-            ND=as.numeric(ND),
-            D=as.numeric(D)) %>%
-    rowwise() %>%
-    mutate(PseudoRsq=1-(D/ND))
-
-OCD_OR$X <- factor(OCD_OR$X, levels=c("OCS", "OCP", "Compulsions", "Obsessions"))
-
-CBCL_OC$PRED_OCS_B <- as.numeric(predict(OCS_OCD_B, type="response")>=0.5)
-confusionMatrix(data=factor(CBCL_OC$PRED_OCS_B, levels=c(0,1)), reference=factor(CBCL_OC$bnOCD, levels=c(0,1)), positive="1")
-
-CBCL_OC$PRED_OCS_N <- as.numeric(predict(OCS_OCD_N, type="response")>=0.5)
-confusionMatrix(data=factor(CBCL_OC$PRED_OCS_N, levels=c(0,1)), reference=factor(CBCL_OC$nOCD, levels=c(0,1)), positive="1")
-
-CBCL_OC$PRED_OCP_B <- as.numeric(predict(OCP_OCD_B, type="response")>=0.5)
-confusionMatrix(data=factor(CBCL_OC$PRED_OCP_B, levels=c(0,1)), reference=factor(CBCL_OC$bnOCD, levels=c(0,1)), positive="1")
-
-CBCL_OC$PRED_OCP_N <- as.numeric(predict(OCP_OCD_N, type="response")>=0.5)
-confusionMatrix(data=factor(CBCL_OC$PRED_OCP_N, levels=c(0,1)), reference=factor(CBCL_OC$nOCD, levels=c(0,1)), positive="1")
-
-CBCL_OC$PRED_COM_B <- as.numeric(predict(COM_OCD_B, type="response")>=0.5)
-confusionMatrix(data=factor(CBCL_OC$PRED_COM_B, levels=c(0,1)), reference=factor(CBCL_OC$bnOCD, levels=c(0,1)), positive="1")
-
-CBCL_OC$PRED_COM_N <- as.numeric(predict(COM_OCD_N, type="response")>=0.5)
-confusionMatrix(data=factor(CBCL_OC$PRED_COM_N, levels=c(0,1)), reference=factor(CBCL_OC$nOCD, levels=c(0,1)), positive="1")
-
-CBCL_OC$PRED_OBS_B <- as.numeric(predict(OBS_OCD_B, type="response")>=0.5)
-confusionMatrix(data=factor(CBCL_OC$PRED_OBS_B, levels=c(0,1)), reference=factor(CBCL_OC$bnOCD, levels=c(0,1)), positive="1")
-
-CBCL_OC$PRED_OBS_N <- as.numeric(predict(OBS_OCD_N, type="response")>=0.5)
-confusionMatrix(data=factor(CBCL_OC$PRED_OBS_N, levels=c(0,1)), reference=factor(CBCL_OC$nOCD, levels=c(0,1)), positive="1")
-
-CBCLOR <- OCD_OR %>% 
-    ggplot(aes(x=OR, xmin=`2.5 %`, xmax=`97.5 %`, y=OCD)) +
-        geom_point(color="firebrick3", size =2.5) +
-        geom_errorbar(width=.3, color="firebrick1") +
-        geom_vline(xintercept=1, linetype="dashed", color="darkgrey") +
-        labs(y=NULL, x=NULL) +
-        scale_x_continuous(breaks=seq(0.7, 3.6, 0.3), limits=c(0.9, 3.5)) +
-        theme_bw() +
-        theme(axis.text.x = element_text(size=15),
-            plot.title = element_text(hjust = 0, size=18, face="plain"),
-            axis.title = element_text(size=15),
-            axis.text.y = element_text(angle=90, hjust=0.5, size=15),
-            strip.background = element_rect(fill="transparent", color="transparent"),
-            strip.text = element_text(face="plain", size=15, hjust=0),
-            strip.placement = "outside",
-            legend.position = "bottom",
-            legend.title = element_text(vjust=1, size=18),
-            legend.text = element_text(size=15)) +
-        facet_wrap(.~X, ncol=1)
-
-plot_grid(CBCLHist, CBCLOR, labels=c("A", "B"), nrow=1, label_size = 18)
-
-ggsave("./CBCLPlot.png", height=12, width=16, 
+ggsave("./Ivankovic_FigureS2.png", height=15, width=13, 
        device="png", units="in", dpi=300, plot=last_plot(), 
        bg="white")
 
-### FIGURE 2
-plot_grid(plot_grid(PlotPrevBN, PlotPrevN, labels=c("A", "B"), ncol=1, label_size = 18),
-		  CBCLHist, CBCLOR, labels=c("", "C", "D"), nrow=1, label_size = 18)
+#########################
+## PART 8. EXPORT DATA ##
+#########################
 
-ggsave("./Figure2.png", height=12, width=20, 
-       device="png", units="in", dpi=300, plot=last_plot(), 
-       bg="white")
+# 8.1. EXPORT PREVALENCE AND COMORBIDITY TABLES
+write.xlsx(Prevs, file = "Ivankovic_SupplementalData.xlsx",
+           sheetName = "ABCD_PREV", append = TRUE)
+
+write.xlsx(Comos, file = "Ivankovic_SupplementalData.xlsx",
+           sheetName = "ABCD_COMO", append = TRUE)
