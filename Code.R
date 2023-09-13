@@ -4,8 +4,8 @@
 #
 # Franjo Ivankovic, Sharon Johnson, James Shen, Jeremiah Scharf, Carol Mathews
 #
-# Corresponding author: C.M. @ carolmathews@ufl.edu
-# Alternative contact: F.I. @ fivankovic@broadinstitute.org
+# Corresponding author: F.I. @ fivankovic@broadinstitute.org
+# Alternative contact: C.M. @ carolmathews@ufl.edu
 #==============================================================================
 # TABLE OF CONTENTS
 #------------------------------------------------------------------------------
