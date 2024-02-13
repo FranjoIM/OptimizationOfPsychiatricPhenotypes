@@ -1,11 +1,14 @@
 #==============================================================================
-# Optimization of Psychiatric Phenotypes for Genetic Analyses in the Adolescent 
-# Brain Cognitive Development Study
+# Authors: Ivankovic F, Johnson S, Shen J, Scharf J, Mathews C
 #
-# Franjo Ivankovic, Sharon Johnson, James Shen, Jeremiah Scharf, Carol Mathews
+# Title:   Optimization of Self- or Parent-Reported Psychiatric Phenotypes in 
+#          Longitudinal Studies
+#
+# Journal: Journal of Child Psychology and Psychiatry
 #
 # Corresponding author: F.I. @ fivankovic@broadinstitute.org
-# Alternative contact: C.M. @ carolmathews@ufl.edu
+# Alternative contact:  C.M. @ carolmathews@ufl.edu
+#
 #==============================================================================
 # TABLE OF CONTENTS
 #------------------------------------------------------------------------------
@@ -55,6 +58,7 @@
 #
 # PART 4. ANALYZE DIAGNOSES
 # 4.1. DEFINE BROAD AND NARROW DATA FRAMES
+# 4.2. CREATE PREVALENCE AND COMORBIDITY TABLES
 #
 # PART 5. ANALYZE CBCL DATA
 # 5.1. PREPARE CBCL DATASET
@@ -76,7 +80,7 @@
 ###############################
 
 # 1.1. SET WORKING DIRECTORY
-setwd("./ABCD_Phenotype")
+setwd("C:/Users/Franjo/Desktop/ABCD_Phenotype")
 
 # 1.2. LOAD NECESSARY LIBRARIES
 library(readr)
@@ -104,9 +108,9 @@ DL <- read_delim("DATA/ABCDv4/abcd_lpds01.txt", delim="\t",
                     escape_double=F, col_types="c", trim_ws=T)[-1,]
 
 
-REF_PREV <- read_excel("Ivankovic_SupplementalData.xlsx", 
+REF_PREV <- read_excel("SupplementalData.xlsx", 
                        sheet = "REF_PREV", range = "A1:D24")
-REF_COM <- read_excel("Ivankovic_SupplementalData.xlsx", 
+REF_COM <- read_excel("SupplementalData.xlsx", 
                       sheet = "REF_COM", range = "A1:E45")
 
 # 1.4. GET TIMEPOINT TOTALS
@@ -307,8 +311,6 @@ RACE %>%
   mutate(Stat=paste0(N, " (", P,")"),
          .keep="unused")
 
-rm(RACE)
-
 # 2.6. ETHNICITY
 ETHNICITY <- DB %>%
   filter(!is.na(demo_ethn_v2) & eventname=="baseline_year_1_arm_1") %>%
@@ -376,8 +378,6 @@ ETHNICITY %>%
   select(-NEV) %>%
   mutate(Stat=paste0(N, " (", P,")"),
          .keep="unused")
-
-rm(ETHNICITY)
 
 # 2.7. EDUCATIONAL ATTAINMENT
 EDUAT <- DB %>%
@@ -1885,96 +1885,124 @@ BroadNames <- colnames(Broad[,-1])
 
 Types <- c("Narrow", "Broad")
 
-Prevs <- data.frame(
-  Disorder=as.character(NULL),
-  Type=as.character(NULL),
-  P=as.numeric(NULL),
-  L95=as.numeric(NULL),
-  U95=as.numeric(NULL),
-  stringsAsFactors=FALSE)
+Results <- list()
 
-Comos <- data.frame(
-  Primary=as.character(NULL),
-  Secondary=as.character(NULL),
-  Type=as.character(NULL),
-  C=as.numeric(NULL),
-  L95=as.numeric(NULL),
-  U95=as.numeric(NULL),
-  stringsAsFactors=FALSE)
+Strata <- c("Full")
 
-for(i in Types){
-  
-  if(i=="Narrow") {
-    Names <- NarrowNames
-    Data <- Narrow
-  } else if(i=="Broad") {
-    Names <- BroadNames
-    Data <- Broad
-  }
-  
-  for(j in Names){
+StrataID <- list()
+
+StrataID[["Full"]] <- Broad$src_subject_id
+
+for(z in Strata){
+  Prevs <- data.frame(
+    Disorder=as.character(NULL),
+    Type=as.character(NULL),
+    Count=as.character(NULL),
+    P=as.numeric(NULL),
+    L95=as.numeric(NULL),
+    U95=as.numeric(NULL),
+    stringsAsFactors=FALSE)
+
+  Comos <- data.frame(
+    Primary=as.character(NULL),
+    Secondary=as.character(NULL),
+    Type=as.character(NULL),
+    Count=as.character(NULL),
+    C=as.numeric(NULL),
+    L95=as.numeric(NULL),
+    U95=as.numeric(NULL),
+    stringsAsFactors=FALSE)
+
+  KEEP <- StrataID[[z]]
+
+  for(i in Types){
     
-    DatA <- pull(Data, j)
+    if(i=="Narrow") {
+      Names <- NarrowNames
+      Data <- Narrow %>%
+        filter(src_subject_id %in% KEEP)
+    } else if(i=="Broad") {
+      Names <- BroadNames
+      Data <- Broad %>%
+        filter(src_subject_id %in% KEEP)
+    }
     
-    VecT <- table(Primary=DatA, useNA="always")
-    
-    N <- sum(VecT[1:2])
-    T <- sum(VecT[2])
-    
-    pEST <- T / N
-    pUP <- pEST + 1.96 * sqrt((pEST*(1-pEST))/N)
-    pDO <- pEST - 1.96 * sqrt((pEST*(1-pEST))/N)
-    
-    pRow <- data.frame(
-      Disorder=j,
-      Type=i,
-      P=round(pEST*100, digits=1),
-      L95=round(pDO*100, digits=1),
-      U95=round(pUP*100, digits=1),
-      stringsAsFactors=FALSE)
-    
-    Prevs <- rbind(Prevs, pRow)
-    
-    for(k in Names){
+    for(j in Names){
       
-      DatB <- pull(Data, k)
+      DatA <- factor(pull(Data, j), levels=c(0,1))
       
-      ConT <- table(Primary=DatA, Secondary=DatB, useNA="always")
+      VecT <- table(Primary=DatA)
       
-      M <- sum(ConT[2,1:2])
-      D <- sum(ConT[2,2])
+      N <- sum(VecT[1:2])
+      T <- sum(VecT[2])
       
-      cEST <- D / M
-      cUP <- cEST + 1.96 * sqrt((cEST*(1-cEST))/M)
-      cDO <- cEST - 1.96 * sqrt((cEST*(1-cEST))/M) 
+      pEST <- T / N
+      pUP <- pEST + 1.96 * sqrt((pEST*(1-pEST))/N)
+      pDO <- pEST - 1.96 * sqrt((pEST*(1-pEST))/N)
       
-      cRow <- data.frame(
-        Primary=j,
-        Secondary=k,
+      pRow <- data.frame(
+        Disorder=j,
         Type=i,
-        C=round(cEST*100, digits=1),
-        L95=round(cDO*100, digits=1),
-        U95=round(cUP*100, digits=1),
+        Count=as.character(ifelse(T>=10, T, 0)),
+        P=round(pEST*100, digits=1),
+        L95=round(pDO*100, digits=1),
+        U95=round(pUP*100, digits=1),
         stringsAsFactors=FALSE)
       
-      Comos <- rbind(Comos, cRow)
+      Prevs <- rbind(Prevs, pRow)
+      
+      for(k in Names){
+        
+        DatB <- factor(pull(Data, k), levels=c(0, 1))
+        
+        ConT <- table(Primary=DatA, Secondary=DatB)
+        
+        M <- sum(ConT[2,1:2])
+        D <- sum(ConT[2,2])
+        
+        cEST <- D / M
+        cUP <- cEST + 1.96 * sqrt((cEST*(1-cEST))/M)
+        cDO <- cEST - 1.96 * sqrt((cEST*(1-cEST))/M) 
+        
+        cRow <- data.frame(
+          Primary=j,
+          Secondary=k,
+          Type=i,
+          Count=as.character(ifelse(D>=10, D, 0)),
+          C=round(cEST*100, digits=1),
+          L95=round(cDO*100, digits=1),
+          U95=round(cUP*100, digits=1),
+          stringsAsFactors=FALSE)
+        
+        Comos <- rbind(Comos, cRow)
+      }
     }
   }
+
+  Prevs <- Prevs %>%
+    mutate(across(where(is.numeric),
+                  ~replace(., which(.<0), 0))) %>%
+    mutate(across(where(is.numeric),
+                  ~replace(., which(.>100), 100))) %>%
+    mutate(across(where(is.numeric),
+                  ~replace(., which(is.nan(.)), 0)))
+
+  Comos <- Comos %>%
+    mutate(across(where(is.numeric),
+                  ~replace(., which(.<0), 0))) %>%
+    mutate(across(where(is.numeric),
+                  ~replace(., which(.>100), 100))) %>%
+    mutate(across(where(is.numeric),
+                  ~replace(., which(is.nan(.)), 0)))
+
+  Results[[z]][["Prevalences"]] <- Prevs
+  Results[[z]][["Comorbidities"]] <- Comos
 }
 
-table(stack(select(Prevs, where(is.numeric)))$values, 
-      useNA="always")
+# 4.3. OUTPUT UNSTRATIFIED RESULTS
 
-table(stack(select(Comos, where(is.numeric)))$values, 
-      useNA="always")
-
-Comos <- Comos %>%
-  mutate(across(where(is.numeric),
-                ~replace(., which(.<0), 0))) %>%
-  mutate(across(where(is.numeric),
-                ~replace(., which(.>100), 100))) %>%
-  mutate(across(where(is.numeric),
-                ~replace(., which(is.nan(.)), 0)))
+Prevs <- Results[["Full"]][["Prevalences"]] 
+Comos <- Results[["Full"]][["Comorbidities"]]
 
 filter(Prevs, Type=="Narrow") %>%
   select(-Type) %>%
@@ -2260,7 +2288,7 @@ plot_grid(F2A, plot_grid(F2B, F2C,
                          ncol=2, labels=c("B", "C"), label_size=20),
           rel_heights=c(2,3), ncol=1, labels=c("A",""), label_size=20)
 
-ggsave("./Ivankovic_Figure2.png", height=15, width=12, 
+ggsave("./Figure2.png", height=15, width=12, 
        device="png", units="in", dpi=300, plot=last_plot(), 
        bg="white")
 
@@ -2319,7 +2347,7 @@ PlotComoS <- PlotComo %>%
 
 plot_grid(PlotComoP, PlotComoS, labels=c("A", "B"), ncol=1, label_size = 18)
 
-ggsave("./Ivankovic_FigureS2.png", height=15, width=13, 
+ggsave("./FigureS2.png", height=15, width=13, 
        device="png", units="in", dpi=300, plot=last_plot(), 
        bg="white")
 
@@ -2328,8 +2356,8 @@ ggsave("./Ivankovic_FigureS2.png", height=15, width=13,
 #########################
 
 # 8.1. EXPORT PREVALENCE AND COMORBIDITY TABLES
-write.xlsx(Prevs, file = "Ivankovic_SupplementalData.xlsx",
+write.xlsx(Results[["Full"]][["Prevalences"]], file = "SupplementalData.xlsx",
            sheetName = "ABCD_PREV", append = TRUE)
 
-write.xlsx(Comos, file = "Ivankovic_SupplementalData.xlsx",
+write.xlsx(Results[["Full"]][["Comorbidities"]], file = "SupplementalData.xlsx",
            sheetName = "ABCD_COMO", append = TRUE)
