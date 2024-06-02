@@ -6,7 +6,7 @@
 #
 # Journal: Journal of Child Psychology and Psychiatry
 #
-# Corresponding author: F.I. @ fivankovic@broadinstitute.org
+# Corresponding author: F.I. @ franjo@franjo.us, fivankovic@broadinstitute.org
 # Alternative contact:  C.M. @ carolmathews@ufl.edu
 #
 #==============================================================================
@@ -16,7 +16,7 @@
 # 1.1. SET WORKING DIRECTORY
 # 1.2. LOAD NECESSARY LIBRARIES
 # 1.3. IMPORT DATASETS
-# 1.4. GET TIMEPOINT TOTALS
+# 1.4. SPECIFY VERSION FOLDER
 #
 # PART 2. DEMOGRAPHICS ANALYSIS
 # 2.1. OVERALL SAMPLE SIZES
@@ -70,9 +70,18 @@
 # 6.3. PLOT FIGURE 2B
 # 6.4. PLOT FIGURE 2C
 # 6.5. ORGANIZE AND SAVE FIGURE 2
+# 
+# PART 7. PLOT FIGURE S2
+# 7.1. PLOT DATA
+# 7.2. SAVE PLOT
+# 
+# PART 8. PLOT FIGURE S3
+# 8.1. PREPARE DATA FOR PLOTTING
+# 8.2. PLOT DATA
+# 8.3. SAVE PLOT
 #
-# PART 8. EXPORT DATA
-# 8.1. EXPORT PREVALENCE AND COMORBIDITY TABLES
+# PART 9. EXPORT DATA
+# 9.1. EXPORT PREVALENCE AND COMORBIDITY TABLES
 #==============================================================================
 
 ###############################
@@ -80,7 +89,7 @@
 ###############################
 
 # 1.1. SET WORKING DIRECTORY
-setwd("C:/Users/Franjo/Desktop/ABCD_Phenotype")
+setwd("C:/.../ABCD_Phenotype")
 
 # 1.2. LOAD NECESSARY LIBRARIES
 library(readr)
@@ -109,7 +118,7 @@ DL <- read_delim("DATA/ABCDv4/abcd_lpds01.txt", delim="\t",
 
 
 REF_PREV <- read_excel("SupplementalData.xlsx", 
-                       sheet = "REF_PREV", range = "A1:D24")
+                       sheet = "REF_PREV", range = "A1:E33")
 REF_COM <- read_excel("SupplementalData.xlsx", 
                       sheet = "REF_COM", range = "A1:E45")
 
@@ -126,6 +135,9 @@ N_F2 <- length(unique(
 N_F3 <- length(unique(
           filter(K2P, eventname=="3_year_follow_up_y_arm_1") %>% 
             pull(src_subject_id)))
+
+# 1.4. SPECIFY VERSION FOLDER
+VER <- "SECOND_RESUBMISSION"
 
 ###################################
 ## PART 2. DEMOGRAPHICS ANALYSIS ##
@@ -762,15 +774,15 @@ DAT <- DAT %>%
 #------------------------------------------------------------------------------
 # NOTE:
 # Available diagnoses include:
-#	ksads_4_826_p - Hallucinations Present
-#	ksads_4_827_p - Hallucinations Past
-#	ksads_4_828_p - Delusions Present
-#	ksads_4_829_p - Delusions Past
-#	ksads_4_849_p - Associated Psychotic Symptoms Current
-#	ksads_4_850_p - Associated Psychotic Symptoms Past
-#	ksads2_4_805_p - Schizophrenia [F20.9]
-#	ksads2_4_806_p - Schizophreniform Disorder [F20.81]
-#	ksads2_4_807_p - Schizoaffective Disorder [F25.0/1] 
+# ksads_4_826_p - Hallucinations Present
+# ksads_4_827_p - Hallucinations Past
+# ksads_4_828_p - Delusions Present
+# ksads_4_829_p - Delusions Past
+# ksads_4_849_p - Associated Psychotic Symptoms Current
+# ksads_4_850_p - Associated Psychotic Symptoms Past
+# ksads2_4_805_p - Schizophrenia [F20.9]
+# ksads2_4_806_p - Schizophreniform Disorder [F20.81]
+# ksads2_4_807_p - Schizoaffective Disorder [F25.0/1] 
 #
 # Abbreviations:
 # PSY - psychotic disorders
@@ -835,11 +847,11 @@ rm(PSY, PSYP, PSYP_V)
 #------------------------------------------------------------------------------
 # NOTE:
 # Available diagnoses include:
-#	ksads_5_857_p - PD Present [F41.0]
-#	ksads_5_858_p - PD Past [F41.0]
-#	ksads2_5_814_p - PD Present [F41.0]
-#	ksads2_5_815_p - PD Present in Partial Remission [F41.0]
-#	ksads2_5_816_p - PD Past [F41.0]
+# ksads_5_857_p - PD Present [F41.0]
+# ksads_5_858_p - PD Past [F41.0]
+# ksads2_5_814_p - PD Present [F41.0]
+# ksads2_5_815_p - PD Present in Partial Remission [F41.0]
+# ksads2_5_816_p - PD Past [F41.0]
 #
 # Abbreviations:
 # PD - panic disorder
@@ -905,10 +917,10 @@ rm(PD, PDP, PDP_V)
 #------------------------------------------------------------------------------
 # NOTE:
 # Available diagnoses include:
-#	ksads_7_861_p - SAD Present [F93.00]
-#	ksads_7_862_p - SAD Past [F93.00]
-#	ksads2_7_819_p - SAD Present [F93.00]
-#	ksads2_7_820_p - SAD Past [F93.00]
+# ksads_7_861_p - SAD Present [F93.00]
+# ksads_7_862_p - SAD Past [F93.00]
+# ksads2_7_819_p - SAD Present [F93.00]
+# ksads2_7_820_p - SAD Past [F93.00]
 #
 # Abbreviations:
 # SAD - separation anxiety disorder
@@ -1068,10 +1080,10 @@ rm(SOPH, SOPHP, SOPHY, SOPHP_V, SOPHY_V)
 #------------------------------------------------------------------------------
 # NOTE:
 # Available diagnoses include:
-#	ksads_9_867_p - SP Present [F40.2XX]
-#	ksads_9_868_p - SP Past [F40.2XX]
-#	ksads2_9_825_p - SP Present [F40.2XX]
-#	ksads2_9_826_p - SP Past [F40.2XX]
+# ksads_9_867_p - SP Present [F40.2XX]
+# ksads_9_868_p - SP Past [F40.2XX]
+# ksads2_9_825_p - SP Present [F40.2XX]
+# ksads2_9_826_p - SP Past [F40.2XX]
 #
 # Abbreviations:
 # SP - specific phobia
@@ -1231,10 +1243,10 @@ rm(GAD, GADP, GADY, GADP_V, GADY_V)
 #------------------------------------------------------------------------------
 # NOTE:
 # Available diagnoses include:
-#	ksads_11_917_p - OCD Present [F42]
-#	ksads_11_918_p - OCD Past [F42]
-#	ksads2_11_877_p - OCD Present [F42]
-#	ksads2_11_878_p - OCD Past [F42]
+# ksads_11_917_p - OCD Present [F42]
+# ksads_11_918_p - OCD Past [F42]
+# ksads2_11_877_p - OCD Present [F42]
+# ksads2_11_878_p - OCD Past [F42]
 #
 # Abbreviations:
 # OCD - obsessive-compulsive disorder
@@ -1527,10 +1539,10 @@ rm(BED, BEDP, BEDY, BEDP_V, BEDY_V)
 #------------------------------------------------------------------------------
 # NOTE:
 # Available diagnoses include:
-#	ksads_15_901_p - ODD Present [F90]
-#	ksads_15_902_p - ODD Past [F90]
-#	ksads2_15_859_p - ODD Present [F90]
-#	ksads2_15_860_p - ODD Past [F90]
+# ksads_15_901_p - ODD Present [F90]
+# ksads_15_902_p - ODD Past [F90]
+# ksads2_15_859_p - ODD Present [F90]
+# ksads2_15_860_p - ODD Past [F90]
 #
 # Abbreviations:
 # ODD - oppositional defiant disorder
@@ -1782,11 +1794,11 @@ rm(TD, TDP, TDP_V)
 #------------------------------------------------------------------------------
 # NOTE:
 # Available diagnoses include:
-#	ksads_21_921_p - PTSD Present [F94.1]
-#	ksads_21_922_p - PTSD Past [F94.1]
-#	ksads2_21_881_p - PTSD Present [F94.1]
-#	ksads2_21_882_p - PTSD Remission [F94.1]
-#	ksads2_21_883_p - PTSD Past [F94.1]
+# ksads_21_921_p - PTSD Present [F94.1]
+# ksads_21_922_p - PTSD Past [F94.1]
+# ksads2_21_881_p - PTSD Present [F94.1]
+# ksads2_21_882_p - PTSD Remission [F94.1]
+# ksads2_21_883_p - PTSD Past [F94.1]
 #
 # Abbreviations:
 # PTSD - post-traumatic stress disorder
@@ -2078,11 +2090,11 @@ CBCL_OC <- CBCL_OC %>%
             by="src_subject_id") %>%
   mutate(OCD_Text = case_when(
     bnOCD==0 ~ "No OCD",
-    bnOCD==1 & nOCD==0 ~ "Broad OCD",
+    bnOCD==1 & nOCD==0 ~ "Broad + Narrow OCD",
     bnOCD==1 & nOCD==1 ~ "Narrow OCD"),
     TD_Text = case_when(
       bnTD==0 ~ "TD Negative",
-      bnTD==1 & nTD==0 ~ "Broad TD",
+      bnTD==1 & nTD==0 ~ "Broad + Narrow TD",
       bnTD==1 & nTD==1 ~ "Narrow TD")) %>%
   left_join(select(filter(DB, eventname=="baseline_year_1_arm_1"), 
                    src_subject_id, demo_sex_v2), 
@@ -2091,9 +2103,9 @@ CBCL_OC <- CBCL_OC %>%
   filter(sex>0 & sex<3)
 
 CBCL_OC$OCD_Text <- factor(CBCL_OC$OCD_Text, 
-                           levels=c("No OCD", "Broad OCD", "Narrow OCD"))
+                           levels=c("No OCD", "Broad + Narrow OCD", "Narrow OCD"))
 CBCL_OC$TD_Text <- factor(CBCL_OC$TD_Text, 
-                           levels=c("TD Negative", "Broad TD", "Narrow TD"))
+                           levels=c("TD Negative", "Broad + Narrow TD", "Narrow TD"))
 
 # 5.2 RUN LOGISTIC REGRESSIONS ON CBCL DATA
 LOGIT_CBCL <- list()
@@ -2161,17 +2173,18 @@ OCD_OR <- OCD_OR %>%
 ###########################
 
 # 6.1. PREPARE DATA FOR PLOTTING
-REF_PREV <- REF_PREV %>%
-  mutate(Type="Reference",
-         .after=Disorder)
-
 PlotPrev <- Prevs %>%
   mutate(Disorder=gsub("n|bn", "", Disorder)) %>%
   mutate(Type=ifelse(Type=="Broad","Broad + Narrow",Type)) %>%
+  select(-Count) %>%
   bind_rows(REF_PREV) %>%
+  mutate(Type2=ifelse(Type %in% c("Narrow", "Broad + Narrow"), Type, "Reference")) %>%
   filter(complete.cases(.))
 
 PlotPrev$Type <- factor(PlotPrev$Type, 
+                        levels=c("Narrow", "Broad + Narrow", "Cross-sectional reference", "Longitudinal reference"))
+
+PlotPrev$Type2 <- factor(PlotPrev$Type2, 
                         levels=c("Narrow", "Broad + Narrow", "Reference"))
 
 PlotPrev$Disorder <- factor(PlotPrev$Disorder, 
@@ -2183,18 +2196,20 @@ OCD_OR$CBCL <- factor(OCD_OR$CBCL,
 
 # 6.2. PLOT FIGURE 2A
 F2A <- ggplot(mapping=aes(x=Disorder, y=P, ymax=U95, ymin=L95, 
-                          fill=Type, width=0.9, color=Type)) +
-  geom_bar(data=PlotPrev[PlotPrev$Typ=="Reference",], 
-           stat="identity") +
-  geom_errorbar(data=PlotPrev[PlotPrev$Typ=="Reference",]) +
-  geom_bar(data=PlotPrev[PlotPrev$Typ!="Reference",], 
+                          fill=Type2, width=0.9, color=Type2)) +
+  geom_bar(data=PlotPrev[PlotPrev$Type=="Cross-sectional reference",], 
+           stat="identity", linewidth=0.7) +
+  geom_errorbar(data=PlotPrev[PlotPrev$Type=="Cross-sectional reference",],
+                linewidth=0.7) +
+  geom_bar(data=PlotPrev[PlotPrev$Type %in% c("Narrow", "Broad + Narrow"),], 
            position=position_dodge2(preserve="single", padding=0.3), 
-           stat="identity", alpha=0.8) +
-  geom_errorbar(data=PlotPrev[PlotPrev$Typ!="Reference",], 
-                position=position_dodge2(preserve="single", padding=0.3)) +
+           stat="identity", alpha=0.8, linewidth=0.7) +
+  geom_errorbar(data=PlotPrev[PlotPrev$Type %in% c("Narrow", "Broad + Narrow"),], 
+                position=position_dodge2(preserve="single", padding=0.3),
+                linewidth=0.7) +
   labs(x=NULL, y="PREVALENCE (%)", title=NULL, fill=NULL, color=NULL) +
-  scale_fill_manual(values=c("#4895ef", "#b5179e", "#adb5bd")) +
-  scale_color_manual(values=c("#4361ee", "#7209b7", "#666666")) +
+  scale_fill_manual(values=c("#adb5bd", "#EB4E4E", "#77B6EA")) +
+  scale_color_manual(values=c("#666666", "#931010", "#1C6DB0")) +
   scale_y_continuous(n.breaks=5,
                      expand=expansion(mult=0.01)) +
   theme_bw()  +
@@ -2220,7 +2235,7 @@ for(i in c("OCS", "OCP", "OBS", "COM")){
     DF %>%
     filter(complete.cases(.)) %>%
     ggplot(aes(x=X)) +
-    geom_histogram(binwidth=1, color="#ffffff", fill="#4895ef") +
+    geom_histogram(binwidth=1, color="#ffffff", fill="#77B6EA") +
     theme_bw() +
     scale_y_continuous(n.breaks=3,
                        expand=expansion(mult=0.025)) +
@@ -2262,9 +2277,9 @@ F2B
 # 6.4. PLOT FIGURE 2C
 F2C <- OCD_OR %>% 
   ggplot(aes(x=OR, xmin=L95, xmax=U95, y=OCD)) +
-  geom_errorbar(width=.4, color="#4361ee", size=1) +
-  geom_point(shape=18, color="#4895ef", size=5) +
-  geom_vline(xintercept=1, linetype="dashed", color="#b5179e", size=1) +
+  geom_errorbar(width=.4, color="#77B6EA", size=1) +
+  geom_point(shape=18, color="#1C6DB0", size=5) +
+  geom_vline(xintercept=1, linetype="dashed", color="#931010", size=1) +
   labs(y=NULL, x="ODDS RATIO") +
   scale_x_continuous(breaks=seq(0.5, 3.5, 0.5), limits=c(0.9, 3.6),
                      expand=expansion(mult=0)) +
@@ -2285,10 +2300,10 @@ F2C
 
 # 6.5. ORGANIZE AND SAVE FIGURE 2
 plot_grid(F2A, plot_grid(F2B, F2C, 
-                         ncol=2, labels=c("B", "C"), label_size=20),
+                         rel_widths=c(2.3,1), ncol=2, labels=c("B", "C"), label_size=20),
           rel_heights=c(2,3), ncol=1, labels=c("A",""), label_size=20)
 
-ggsave("./Figure2.png", height=15, width=12, 
+ggsave(paste0("./", VER, "/Figure2.png"), height=15, width=12, 
        device="png", units="in", dpi=300, plot=last_plot(), 
        bg="white")
 
@@ -2296,7 +2311,40 @@ ggsave("./Figure2.png", height=15, width=12,
 ## PART 7. PLOT FIGURE S2 ##
 ############################
 
-# PREPARE COMORBIDITY DATA FOR PLOTTING
+# 7.1. PLOT DATA
+FS2 <- PlotPrev %>%
+  ggplot(mapping=aes(x=Disorder, y=P, ymax=U95, ymin=L95, 
+                     fill=Type, width=0.9, color=Type)) +
+  geom_bar(position=position_dodge2(preserve="single", padding=0.3), 
+           stat="identity", alpha=0.8) +
+  geom_errorbar(position=position_dodge2(preserve="single", padding=0.3)) +
+  labs(x=NULL, y="PREVALENCE (%)", title=NULL, fill=NULL, color=NULL) +
+  scale_fill_manual(values=c("#EB4E4E", "#77B6EA", "#FFC482", "#35D4B1")) +
+  scale_color_manual(values=c("#931010", "#1C6DB0", "#E07800", "#197662")) +
+  scale_y_continuous(n.breaks=5,
+                     limits=c(0,40)) +
+  theme_bw()  +
+  theme(axis.text.x=element_text(angle=35, vjust=1, hjust=1, size=15),
+        axis.title=element_text(size=15, face="bold", hjust=0),
+        axis.text.y=element_text(angle=90, hjust=0.5, size=15),
+        legend.position=c(0,0.95),
+        legend.justification="left",
+        legend.direction="horizontal",
+        legend.title=element_text(vjust=1, size=15),
+        legend.text=element_text(size=15),
+        legend.background=element_blank())
+FS2  
+
+# 7.2. SAVE PLOT
+ggsave(paste0("./", VER, "/FigureS2.png"), height=5, width=10, 
+       device="png", units="in", dpi=300, plot=last_plot(), 
+       bg="white")
+
+############################
+## PART 8. PLOT FIGURE S3 ##
+############################
+
+# 8.1. PREPARE DATA FOR PLOTTING
 REF_COM <- REF_COM %>%
   mutate(Type="Reference",
          .after=Secondary) %>%
@@ -2309,50 +2357,58 @@ PlotComo <- Comos %>%
   bind_rows(REF_COM) %>%
   filter(Primary!="BN"&Secondary!="BN")
 
-# Plot Comorbidities, aka Figure 5
+# 8.2. PLOT DATA
 PlotComoP <- PlotComo %>%
   filter(Primary=="OCD") %>%
-  ggplot(aes(fill=Type, y=C, x=Secondary)) + 
-  geom_bar(position=position_dodge2(preserve="single"), stat="identity") + 
-  geom_errorbar(aes(ymin=L95, ymax=U95), width=0.8, position=position_dodge(0.9)) +
-  scale_fill_manual(values=c("#4895ef", "#adb5bd")) +
-  scale_color_manual(values=c("#4361ee", "#666666")) +
+  ggplot(aes(fill=Type, color=Type, y=C, ymin=L95, ymax=U95, x=Secondary)) + 
+  geom_bar(position=position_dodge2(preserve="single", padding=0.3), 
+           stat="identity", alpha=0.8, linewidth=0.7) +
+  geom_errorbar(position=position_dodge2(preserve="single", padding=0.3),
+                linewidth=0.7) +
+  scale_fill_manual(values=c("#EB4E4E", "#adb5bd")) +
+  scale_color_manual(values=c("#931010", "#666666")) +
   aes(stringr::str_wrap(Secondary, 15)) +
-  labs(x = NULL, y = "Cormorbidity Rate (%)", title = "OCD Primary", fill="OCD diagnosis") +
+  labs(x = NULL, y = "Cormorbidity Rate (%)", title = "OCD Primary", fill="OCD diagnosis", color="OCD diagnosis") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 35, vjust = 1, hjust=1, size=15),
-        plot.title = element_text(face="bold.italic", size=15, hjust=0),
+        plot.title = element_text(face="bold.italic", size=15, hjust=0, vjust=0),
         axis.title = element_text(size=15),
         axis.text.y = element_text(angle=90, hjust=0.5, size=15),
         legend.position = "none")
 
 PlotComoS <- PlotComo %>%
   filter(Secondary=="OCD") %>%
-  ggplot(aes(fill=Type, y=C, x=Primary)) + 
-  geom_bar(position=position_dodge2(preserve="single"), stat="identity") + 
-  geom_errorbar(aes(ymin=L95, ymax=U95), width=0.8, position=position_dodge(0.9)) +
-  scale_fill_manual(values=c("#4895ef", "#adb5bd")) +
-  scale_color_manual(values=c("#4361ee", "#666666")) +
+  ggplot(aes(fill=Type, color=Type, y=C, ymin=L95, ymax=U95, x=Primary)) + 
+  geom_bar(position=position_dodge2(preserve="single", padding=0.3), 
+           stat="identity", alpha=0.8, linewidth=0.7) +
+  geom_errorbar(position=position_dodge2(preserve="single", padding=0.3),
+                linewidth=0.7) +
+  scale_fill_manual(values=c("#EB4E4E", "#adb5bd")) +
+  scale_color_manual(values=c("#931010", "#666666")) +
   coord_cartesian(ylim=c(0,100)) +
   aes(stringr::str_wrap(Primary, 15)) +
-  labs(x = NULL, y = "Cormorbidity Rate (%)", title = "OCD Secondary", fill="OCD diagnosis") +
+  labs(x = NULL, y = "Cormorbidity Rate (%)", title = "OCD Secondary", fill="OCD diagnosis", color="OCD diagnosis") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 35, vjust = 1, hjust=1, size=15),
-        plot.title = element_text(face="bold.italic", size=15, hjust=0),
+        plot.title = element_text(face="bold.italic", size=15, hjust=0, vjust=0),
         axis.title = element_text(size=15),
         axis.text.y = element_text(angle=90, hjust=0.5, size=15),
-        legend.position = "bottom",
         legend.title = element_text(vjust=1, size=18, margin=margin(r=15, unit="pt")),
-        legend.text = element_text(size=15, margin=margin(r=15, unit="pt")))
+        legend.text = element_text(size=15, margin=margin(r=15, unit="pt")),
+        legend.position="bottom",
+        legend.justification="left",
+        legend.direction="horizontal",
+        legend.background=element_blank())
 
 plot_grid(PlotComoP, PlotComoS, labels=c("A", "B"), ncol=1, label_size = 18)
 
-ggsave("./FigureS2.png", height=15, width=13, 
+# 8.3. SAVE PLOT
+ggsave(paste0("./", VER, "/FigureS3.png"), height=15, width=13, 
        device="png", units="in", dpi=300, plot=last_plot(), 
        bg="white")
 
 #########################
-## PART 8. EXPORT DATA ##
+## PART 9. EXPORT DATA ##
 #########################
 
 # 8.1. EXPORT PREVALENCE AND COMORBIDITY TABLES
